@@ -1,0 +1,565 @@
+@import '~office-ui-fabric-react/dist/sass/References.scss';
+@import '~@microsoft/sp-office-ui-fabric-core/dist/sass/SPFabricCore.scss';
+
+// @import url('https://fonts.googleapis.com/css2?family=Open+Sans+Condensed:wght@300&display=swap');
+
+@font-face {
+  font-family: 'Open Sans Condensed';
+  src: url('../fonts/OpenSans-CondLight-webfont.woff') format('woff'),
+       url('../fonts/OpenSans-CondLight-webfont.ttf') format('truetype');
+       font-style: normal;
+       font-weight: 300;
+}
+
+/* for IE11 because of wrong distanz measuring */
+@media all and (-ms-high-contrast: none), (-ms-high-contrast: active) {
+.persona
+      { 
+        width: 5rem !important;
+      } 
+    }
+
+.permissionCenter {
+  
+  .container {
+    max-width: 21.875rem;
+    margin: 0;
+  }
+  .row {
+    margin: 0;
+    padding: 0;
+  }
+  .column {
+    margin: 0;
+    padding: 0;
+  }
+  .titleContainer {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+  .title {
+    font-size: 1.25rem;
+    font-weight: 600;
+  }
+  .refresh {
+     width: 2.5rem;
+     height: 2.5rem;
+  }
+  .tabContainer {
+    display: flex;
+    flex-wrap: wrap;
+    margin: .3rem 0 .3rem -.7rem;
+    // passive tab 
+    .tabItem {
+      padding: 0 .7rem;
+      height: fit-content;
+      line-height: 2rem;
+    }
+    .tabItem:hover {
+      background-color: "[theme: neutralLight, default: #eaeaea]";
+      cursor: pointer;
+    }
+    .tabItem:active {
+      background-color: "[theme: neutralTertiaryAlt, default: #c8c8c8]";
+    }
+    .tabItem:focus {
+      outline: none;
+    }
+    // active tab 
+    .tabActiveItem {
+      margin: 0 .7rem;
+      height: fit-content;
+      line-height: 2rem;
+      font-weight: 600;
+      border-bottom: .15rem solid ;
+      border-bottom-color: "[theme: themeDark]";
+    }
+    .tabActiveItem:focus {
+      outline: none;
+    }
+  }
+  .tabContent {
+    overflow-y: scroll;
+    max-height: 30rem;
+  }
+ 
+
+  //userRow
+  .userContainer {
+    margin-left: 1.375rem;
+  }
+  .allUserContainer {
+    padding: 0;
+  }
+
+  .userRowContainer {
+  
+    .userRow {
+      padding-left: 0;
+            
+      //user name
+      .user {
+        @include ms-font-m;
+        position: relative;
+        display: inline-block;
+        word-wrap: break-word;
+        border-bottom: 'initial';
+        cursor: pointer;
+        span {
+          font-weight: 300;
+        } 
+      }
+      .user:hover {
+        background-color: "[theme: neutralLight, default: #eaeaea]";
+      }
+      .user:focus {
+        outline: none;
+      }
+      .user:active {
+        background-color: "[theme: neutralTertiaryAlt, default: #c8c8c8]";
+      }
+      // user card expanded
+      .userActive {
+        @include ms-font-m;
+        position: relative;
+        display: inline-block;
+        word-wrap: break-word;
+        border-bottom: 'initial';
+        cursor: pointer;
+        background-color: "[theme: neutralLight, default: #eaeaea]";
+        span {
+          font-weight: 300;
+        }
+      }
+      .userActive:hover {
+        background-color: "[theme: neutralLight, default: #eaeaea]";
+      }
+      .userActive:focus {
+        outline: none;
+      }
+      .userActive:active {
+        background-color:none;
+      }
+      // user without user card
+      .userInvalid {
+        @include ms-font-m;
+        position: relative;
+        display: inline-block;
+        word-wrap: break-word;
+        border-bottom: 'initial';
+        span {
+          font-weight: 300;
+        }
+      }
+      .userInvalid:focus {
+        outline: none;
+      }
+    }
+
+    .userRow:focus {
+      outline: none;
+    }        
+  }
+
+  .placeholderItem {
+    box-shadow: 0 0.25rem 0.625rem 0 rgba(33, 33, 33, 0.15);
+    border-radius: 0.25rem;
+    position: relative;
+    overflow: hidden;
+    max-width: 10rem;
+    margin-top: .5rem;
+    padding: .5rem;
+
+  }
+  .placeholderItem::before {
+    content: '';
+    display: block;
+    position: absolute;
+    left: -9.375rem;
+    top: 0;
+    height: 100%;
+    width: 9.375rem;
+    background: linear-gradient(to right, transparent 0%, #E8E8E8 50%, transparent 100%);
+    animation: load 1s cubic-bezier(0.4, 0.0, 0.2, 1) infinite;
+  }
+  @keyframes load {
+    from {
+        left: -9.375rem;
+    }
+    to   {
+        left: 100%;
+    }
+  }
+
+  // group header
+  .groupHeader {
+    display: flex;
+    justify-content: space-between;
+    margin: 0.3125rem 0 0.3125rem 0;
+
+    //icon
+    .iconContainer {
+      margin: 0 0.25rem 0 -0.25rem;
+      flex-shrink: 0;
+      height: fit-content;
+      .icon:focus {
+        outline: none;
+      }
+      .icon:hover {
+        cursor: pointer;
+      }
+      .icon:active {
+        outline: none;
+      }
+      .iconInit {
+        padding: 0.25rem;
+        transition: 0.3s;
+        transition-timing-function: ease-out;
+      }
+      .iconTurned {
+        padding: 0.25rem;
+        transform: rotate(-90deg);
+        transition: 0.3s;
+        transition-timing-function: ease-out;
+      }
+    }
+    
+    //group Title Container
+    .groupTitleContainer {
+      flex-shrink: 1;
+      flex-grow: 1;
+      min-width: 1.25rem;
+      word-break: break-word;
+      @include ms-font-l;
+        
+      .groupTitle {
+        font-weight: 600;
+        margin-right: 0.1875rem;
+        overflow-wrap: break-word;
+      }
+      .groupSubTitle {
+        display: inline;
+        margin-right: 0.1875rem;
+        @include ms-font-m;
+        font-weight: 300;
+        word-break: break-all;
+        font-family: 'Open Sans Condensed', sans-serif;
+      }
+
+      .groupTitleLinkOpen {
+        @include ms-font-m;
+        color: "[theme: themeDark, default: #005a9e]";
+        font-weight: 400;
+        text-decoration: underline;
+        padding-right: 0.25rem;
+        word-break: break-all;
+        display: inline;
+      }
+      .groupTitleLinkOpen:hover {
+        cursor: pointer;
+      }
+      .groupTitleLinkOpen:focus {
+        outline: none;
+      }
+      .groupTitleLinkOpen:active {
+        cursor: pointer;
+        color: "[theme: themeDarker, default: #004578]";
+      }
+      .groupTitleLinkPerm {
+        @include ms-font-m;
+        color: "[theme: themeDark, default: #005a9e]";
+        font-weight: 400;
+        text-decoration: underline;
+        padding-right: 0.25rem;
+        word-break: break-all;
+        display: inline;
+      }
+      .groupTitleLinkPerm:hover {
+        cursor: pointer;
+      }
+      .groupTitleLinkPerm:focus {
+        outline: none;
+      }
+      .groupTitleLinkPerm:active {
+        cursor: pointer;
+        color: "[theme: themeDarker, default: #004578]";
+      }
+
+      .permissions {
+        @include ms-font-m;
+        display: inline;
+        overflow-wrap: break-word;
+        display: inline;
+      }
+      .permissionLevel:hover {
+        cursor: pointer;
+        color: "[theme: themeDark, default: #005a9e]";
+        text-decoration: underline;
+      }
+      .permissionLevel:active {
+        cursor: pointer;
+        color: "[theme: themeDarker, default: #004578]";
+      }
+    }
+
+    // Icon edit group toggle
+    .cardAndUsersIcon {
+      padding: .25rem .375rem 0 .375rem;
+    }
+    .editIcon {
+      height: 0.875rem;
+      flex-shrink: 0;
+      opacity: 1;
+      transition: opacity 0.3s;
+      cursor: pointer;
+      height: fit-content;
+    }
+    
+    .editIcon:focus {
+      outline: none;
+    }
+    .editIcon:hover {
+      background-color: "[theme: neutralLight, default: #eaeaea]";
+      
+    }
+    .editIcon:active {
+      background-color: "[theme: neutralTertiaryAlt, default: #c8c8c8]";
+      outline: none;
+    }
+    
+    .editIconActive {
+      background-color: "[theme: neutralLight, default: #eaeaea]";
+      outline: none;
+      flex-shrink: 0;
+      opacity: 1;
+      transition: opacity 0.3s;
+      cursor: pointer;
+      height: fit-content;
+    }
+    .editIconActive:focus {
+      outline: none;
+    }
+    .editIconActive:hover {
+      background-color: "[theme: neutralLight, default: #eaeaea]";
+    }
+    .editIconActive:active {
+      background-color: "[theme: neutralTertiaryAlt, default: #c8c8c8]";
+      outline: none;
+    }
+    .editIconHidden {
+      outline: none;
+      flex-shrink: 0;
+      padding: 0.25rem;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+  }
+
+  // group card
+  .groupCard {
+    padding-left: 1.375rem;
+
+    .groupCardContainer {
+      padding: 0.3125rem 0.625rem;
+      box-shadow: inset 0 0.125rem 0.3125rem 0 "[theme: neutralSecondary, default: #666666]";
+      background-color: "[theme: neutralLighter, default: #f4f4f4]";
+    }
+    .groupCardButtonContainer {
+      outline: none;
+    }
+    .dataContainer {
+      padding: 0.3125rem 0 0 0;
+    }
+    .dataRow {
+      @include ms-font-m;
+      display: flex;
+      padding: 0 0 0.3125rem 0;
+      .dataKeyShort {
+        font-family: 'Open Sans Condensed', sans-serif;
+        width: 2.5rem;
+        flex-shrink: 0;
+      }
+      .dataKeyLong {
+        font-family: 'Open Sans Condensed', sans-serif;
+        width: 5rem;
+        flex-shrink: 0;
+      }
+      .dataValue {
+        font-family: 'Segoe UI', Tahoma, Verdana, sans-serif;
+        word-break: break-word;
+      }
+    }
+  }
+
+  .userCard {
+    background-color: "[theme: neutralLighter, default: #f4f4f4]";
+    .userCardContainer {
+      padding: 0.3125rem 0.625rem;
+      margin: 0.3125rem 0;
+      box-shadow: inset 0 0.125rem 0.3125rem 0 "[theme: neutralSecondary, default: #666666]";
+      .permissions {
+        padding: .125rem;
+        margin: .125rem;
+        font-family: 'Open Sans Condensed', sans-serif;
+      }
+      .persona {
+        width: 2.5rem;
+        margin-right: 0.25rem;
+      }
+    }
+    .userCardButtonContainer {
+      outline: none;
+    }
+    .dataRow {
+      @include ms-font-m;
+      display: flex;
+      padding: 0.125rem 0;
+      .dataKeyShort {
+        font-family: 'Open Sans Condensed', sans-serif;
+        width: 5rem;
+        flex-shrink: 0;
+      }
+      .dataKeyLong {
+        font-family: 'Open Sans Condensed', sans-serif;
+        width: 8rem;
+        flex-shrink: 0;
+      }
+      .dataValue {
+        font-family: 'Segoe UI', Tahoma, Verdana, sans-serif;
+      }
+    }
+    .nestedGroup {
+      border-radius: 0.3125rem;
+      display: inline-flex;
+      width: fit-content;
+      padding: 0.125rem 0.625rem;
+      margin: 0.125rem 0;
+      
+      .type {
+        display: inline;
+        padding-right: 0.3125rem;
+        font-family: 'Open Sans Condensed', sans-serif;
+      }
+      .name {
+        display: inline;
+        font-family: 'Open Sans Condensed', sans-serif;
+        word-break: break-word;
+      }
+    }
+    
+    .spGroup {
+      background-color: #038488;
+      color: white;
+    }
+    .spGroup:hover {
+      background-color: #04A0A4;
+      color: white;
+      cursor: pointer;
+    }
+    .spGroup:active {
+      background-color: #026B6E;
+      color: white;
+    }
+    .spGroupInvalid {
+      background-color: #038488;
+      color: white;
+    }
+
+    .otherAzureGroup {
+      background-color: #025BDA;
+      color: white;
+    }
+    .otherAzureGroup:hover {
+      background-color: #3184FD;
+      color: white;
+      cursor: pointer;
+    }
+    .otherAzureGroup:active {
+      background-color: #0249B2;
+      color: white;
+    }
+    .otherAzureGroupInvalid {
+      background-color: #025BDA;
+      color: white;
+    }
+    .m365Group {
+      background-color: #0E87D5;
+      color: white;
+    }
+    .m365Group:hover {
+      background-color: #1FA1F1;
+      color: white;
+      cursor: pointer;
+    }
+    .m365Group:active {
+      background-color: #0A669E;
+      color: white;
+    }
+    .m365GroupInvalid {
+      background-color: #0E87D5;
+      color: white;
+    }
+
+    .user {
+      border:0.0625rem solid ;
+    }
+    .user:hover {
+      background-color: "[theme: neutralLight, default: #eaeaea]";
+      cursor: pointer;
+    }
+    .user:active {
+      background-color: "[theme: neutralTertiaryAlt, default: #c8c8c8]";
+    }
+    .userInvalid {
+      border:0.0625rem solid ;
+    }
+
+    .branchContainer {
+      display: flex;
+    }
+  }
+  .tooltip {
+    position: absolute;
+    background: inherit;
+    border:0.0625rem solid "[theme: neutralTertiaryAlt, default: #c8c8c8]";
+    padding: .25rem .5rem;
+    max-width: 16rem;
+    z-index: 99;
+  }
+}
+
+.modalColumn {
+  max-width: 20rem;
+  .headline {
+    @include ms-font-l;
+  }
+  .iconContainer {
+    width: 1.25rem;
+    height: 1.25rem;
+    .successIcon {
+      color: green;
+      font-size: 1.25rem;
+      font-weight: 600;
+      cursor: default;
+    }
+    .errorIcon {
+      color: red;
+      font-size: 1.25rem;
+      font-weight: 600;
+      cursor: default;
+    }
+  }
+  .openLink {
+    cursor: pointer;
+    text-decoration: underline;
+  }
+}
+.modalCheckbox {
+  width:1.25rem;
+  height:1.25rem;
+  flex-shrink:0;
+  cursor: pointer;
+}
+
+
