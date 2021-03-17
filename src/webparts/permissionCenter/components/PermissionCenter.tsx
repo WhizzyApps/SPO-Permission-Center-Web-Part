@@ -65,6 +65,7 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
     },
     azureGroups: {},
     azureGroupArraySorted: [],
+    tenantAzureGroups: [],
     selectedTab: 'Groups',
     isGroupsLoading: true,
     hiddenGroupsExist: false,
@@ -185,7 +186,7 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
     this.azureGroups[azureGroupEntry]["type"] = parentAzureGroupType;
 
     // prepare get members
-    let url = "/groups/" + azureGroupId + "/members?$top=999" + "&$c=" + Date.now().toString(); // "&$c=" + Date.now().toString() for IE11 because otherwise it takes the cached request
+    let url = "/groups/" + azureGroupId + "/members?$top=500" + "&$c=" + Date.now().toString(); // "&$c=" + Date.now().toString() for IE11 because otherwise it takes the cached request
     // if M365OwnersGroup
     if (azureGroupId.length > 36) {
       const azureGroupIdCut = azureGroupId.substring(0,36); // cut "_o" from end of id of M365OwnersGroup
@@ -222,6 +223,7 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
                 this.users[userEntry]["name"] = memberItem.displayName;
                 this.users[userEntry]["azureId"] = memberItem.id;
                 this.users[userEntry]["principalName"] = memberItem.userPrincipalName;
+                this.users[userEntry]["loginName"] = "i:0#.f|membership|" + memberItem.userPrincipalName;
                 if (this.spGroups[spGroupEntry].groupName !== "Access given directly") {
                   this.users[userEntry]["permissionLevel"] = this.spGroups[spGroupEntry].permissionLevel;
                 } else {
@@ -284,43 +286,20 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
           const loginNameSplit = memberItem.LoginName.split("|");
           let firstLevelAzureGroupPermissionLevel = [];
 
-          // if spGroupMember = user
-          if ((loginNameSplit[0] === 'i:0#.f') || (memberItem.Title === 'Company Administrator')) {
-            
-            //create user in this.users
-            const userEntry = `user${userCount}`; userCount += 1;
-            this.users[userEntry] = new Object;
-            // write properties
-            this.users[userEntry]["name"] = memberItem.Title;
-            this.users[userEntry]["spId"] = memberItem.Id;
-            this.users[userEntry]["principalName"] = loginNameSplit[2];
-            if (this.spGroups[spGroupEntry].groupName !== "Access given directly") {
-              // permission level for groups except Access given directly
-              this.users[userEntry]["permissionLevel"] = this.spGroups[spGroupEntry].permissionLevel;
-            } else {
-              // permission level for Access given directly group
-              this.users[userEntry]["permissionLevel"] = memberItem.permissionLevel;
-              this.users[userEntry]["permissionLevelDirectAccess"] = memberItem.permissionLevel;
+          // check if loginName includes a guid from an azure group
+          let isAzureGroup = false;
+          let azureGroup;
+          this.state.tenantAzureGroups.forEach(
+            azureGroupItem => {
+              if (memberItem.LoginName.includes(azureGroupItem.id)) {
+                isAzureGroup = true;
+                azureGroup = azureGroupItem;
+              }
             }
-            this.users[userEntry]["groupNesting"] = [groupNestingBranch];
-            this.users[userEntry]["spGroup"] = spGroupEntry;
-            // if user has email
-            if (memberItem.Email) {
-              this.users[userEntry]["email"] = memberItem.Email;
-              // if not, check if principalName is email
-            } else if (regExMail.test(loginNameSplit[2])) {
-              this.users[userEntry]["email"] = loginNameSplit[2];
-              // if neighter, no email
-            } else {this.users[userEntry]["email"] = '';}
-            
-
-            //write user into this.spGroups.users
-            this.spGroups[spGroupEntry].users.push(userEntry);
-            return userEntry;
-          } 
+          );
 
           // if spGroupMember = azure group
-          else if ((loginNameSplit[0] === 'c:0t.c') || (loginNameSplit[0] === 'c:0o.c')) { 
+          if (isAzureGroup) { 
 
             const azureGroupId = loginNameSplit[2];
             const parentAzureGroupEntry = "spGroup";
@@ -328,25 +307,50 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
             if (this.spGroups[spGroupEntry].groupName === "Access given directly") {
               firstLevelAzureGroupPermissionLevel = memberItem.permissionLevel;
             }
-            // get type properties
-            let url = "/groups/" + azureGroupId + "?$select=groupTypes,mailEnabled,securityEnabled" + "&$c=" + Date.now().toString(); // "&$c=" + Date.now().toString() for IE11 because otherwise it takes the cached request
-            // if M365OwnersGroup
-            if (azureGroupId.length > 36) {
-              const azureGroupIdCut = azureGroupId.substring(0,36); // cut "_o" from end of id of M365OwnersGroup
-              url = "/groups/" + azureGroupIdCut + "?$select=groupTypes,mailEnabled,securityEnabled" + "&$c=" + Date.now().toString(); // "&$c=" + Date.now().toString() for IE11 because otherwise it takes the cached request
-            }
-            const typePropertiesResponse = await this._graphApiGet(url);
-            let azureGroupType;
-            // if any error, just display "Azure group" for type
-            if (typePropertiesResponse.statusCode) {
-              azureGroupType = {long: "Azure group", short: "AG"};
-            }
-            else {
-              azureGroupType = this._evalAzureGroupType (typePropertiesResponse["groupTypes"][0], typePropertiesResponse["mailEnabled"], typePropertiesResponse["securityEnabled"]);
-            }
+            
+            const azureGroupType = this._evalAzureGroupType (azureGroup["groupTypes"][0], azureGroup["mailEnabled"], azureGroup["securityEnabled"]);
+
             return await this._buildAzureGroupAndGetChildItemsRecursive(memberItem.Title, azureGroupId, spGroupEntry, groupNestingBranch, parentAzureGroupEntry, azureGroupType, firstLevelAzureGroupPermissionLevel);
           } 
-          else return `${memberItem.LoginName} is no user nor azure group`;
+          // else spGroupMember is treated as user
+          else {
+            // filter "System Account"
+            if (memberItem.Title !== "System Account") {  
+
+              //create user in this.users
+              const userEntry = `user${userCount}`; userCount += 1;
+              this.users[userEntry] = new Object;
+              // write properties
+              this.users[userEntry]["name"] = memberItem.Title;
+              this.users[userEntry]["spId"] = memberItem.Id;
+              this.users[userEntry]["principalName"] = loginNameSplit[2];
+              this.users[userEntry]["loginName"] = memberItem.LoginName;
+              if (this.spGroups[spGroupEntry].groupName !== "Access given directly") {
+                // permission level for groups except Access given directly
+                this.users[userEntry]["permissionLevel"] = this.spGroups[spGroupEntry].permissionLevel;
+              } else {
+                // permission level for Access given directly group
+                this.users[userEntry]["permissionLevel"] = memberItem.permissionLevel;
+                this.users[userEntry]["permissionLevelDirectAccess"] = memberItem.permissionLevel;
+              }
+              this.users[userEntry]["groupNesting"] = [groupNestingBranch];
+              this.users[userEntry]["spGroup"] = spGroupEntry;
+              // if user has email
+              if (memberItem.Email) {
+                this.users[userEntry]["email"] = memberItem.Email;
+                // if not, check if principalName is email
+              } else if (regExMail.test(loginNameSplit[2])) {
+                this.users[userEntry]["email"] = loginNameSplit[2];
+                // if neighter, no email
+              } else {this.users[userEntry]["email"] = '';}
+              
+
+              //write user into this.spGroups.users
+              this.spGroups[spGroupEntry].users.push(userEntry);
+              return userEntry;
+            }
+          } 
+
         })
       );
     }
@@ -403,6 +407,7 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
     this.spGroups[spGroupEntry]['type'] = "SharePoint group";
     this.spGroups[spGroupEntry]['typeShort'] = "SP";
     this.spGroups[spGroupEntry]['users'] = [];
+    this.spGroups[spGroupEntry]['permissionLevel'] = [];
     //keep displayname of default groups
     if (!this.spGroups[spGroupEntry].displayName) {
       this.spGroups[spGroupEntry].displayName = spGroupResponse.Title;
@@ -571,6 +576,13 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
       )
     );
   }
+
+  // get all azure groups (to check if a group member is a sp domain group or an azure group, because loginName of both starts with “c:0t.c“)
+  private async _getAllAzureGroups () {
+    let response = await this._graphApiGet("/groups");
+    this.setState({tenantAzureGroups: response.value});
+  }
+
 
   // ---------- prettify results --------------
 
@@ -825,7 +837,7 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
     // sort the arrays of azure group objects by name
     const azureGroupArrayArraySorted = azureGroupArrayArray.map(
       azureGroupTypeArrayItem => azureGroupTypeArrayItem.sort((a, b) => {
-        return a.name.localeCompare(b.name);
+        return a.name.localeCompare(b.name, undefined, {numeric: true});
       })
     );
     // put the azure gorup objects all in one array, that is now sorted first by group type, second by group name
@@ -839,7 +851,7 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
   }
 
   // unify parallel parts of group nesting paths for each user and create tree
-  private _unifyGroupNestingOfUser () {
+  private _rebuildGroupNestingOfUser () {
 
     // unify group nesting branches and create tree
     Object.keys(this.users).forEach(
@@ -853,7 +865,7 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
         this.users[userEntryItem].groupNesting = createTree(groupNesting);
 
         // create tree function
-        function createTree(structure) {
+        function createTree(groupNestingCopy) {
           const node = (name) => ({name, children: []});
           const addNode = (parent, child) => (parent.children.push(child), child);
         
@@ -865,7 +877,7 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
               }
           };
           const TOP_NAME = "groupNesting", top = node(TOP_NAME);
-          for (const children of structure) {
+          for (const children of groupNestingCopy) {
               let parent = top;
               for (const name of children) {
                   const found = findNamed(name, parent);
@@ -1028,6 +1040,7 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
   
   // get and display default Sharepoint groups and their members
     private async _firstCallBatch () {
+    await this._getAllAzureGroups();
     const resultDefaultGroups = await this._getDefaultSpGroups(["Owner", "Member", "Visitor"]);
     if (this.props.config.logPermCenterVars) { console.log("----------------_getDefaultSpGroups result: ", resultDefaultGroups);}
     this._removeDuplicateAzureGroups ();
@@ -1047,7 +1060,7 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
     this._sortAzureGroups();
     this._removeDuplicateUsers();
     this._prettifyUserPermissionLevels(this.sitePermissionLevels);
-    this._unifyGroupNestingOfUser();
+    this._rebuildGroupNestingOfUser();
     
     // if hidden groups
     if (Object.keys(this.state.spGroups).filter(spGroupEntryItem=>this.spGroups[spGroupEntryItem].isHidden===true)[0]) {

@@ -21,7 +21,9 @@ const AllUsers: React.FC<Props> = ({ state, props, isGroupsLoading }) => {
     });
     
     // sort userNameArray by user name
-    userNameArray.sort();
+    userNameArray.sort((a,b) => {
+      return a.localeCompare(b);
+    });
 
     // Jsx Array of UserContainer
     const userContainerArray = userNameArray.map((userName) => {

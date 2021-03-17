@@ -441,7 +441,7 @@ export default class PermissionCenterWebPart extends BaseClientSideWebPart <IPer
         
         roleConfig = [
           PropertyPaneDropdown('role', {
-            label: 'Configure webpart for',
+            label: 'Configure web part for',
             options: [
               { key: 'owner', text: 'Site owners' },
               { key: 'member', text: 'Site members' },
@@ -727,7 +727,7 @@ export default class PermissionCenterWebPart extends BaseClientSideWebPart <IPer
             offText: "Off"
           }),
           PropertyPaneToggle('logPermCenterVars', {
-            label: 'Log variables of main components',
+            label: 'Log variables of main component',
             onText: "On",
             offText: "Off"
           }),

@@ -5,7 +5,7 @@
     "id": "890f2e8a-6e2a-4049-822d-c7ca8a6e4069",
     "title": "Permission Center web part",
     "supportedLocales" : ["en-us"],
-    "version": "1.0.1.0",
+    "version": "1.0.2.0",
     "includeClientSideAssets": true,
     "isDomainIsolated": false,
     "webApiPermissionRequests": [

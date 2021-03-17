@@ -31,7 +31,7 @@ const SpGroupContainer: React.FC<Props> = ({ spGroupEntry, state, props }) => {
     const usersSortedArray = usersFilteredArray.sort((a, b) => {
       const item1 = Object.values(a)[0]["name"];
       const item2 = Object.values(b)[0]["name"];
-      return item1.localeCompare(item2);
+      return item1.localeCompare(item2, undefined, {numeric: true});
     });
 
     // make userContainerArray (Jsx Array)

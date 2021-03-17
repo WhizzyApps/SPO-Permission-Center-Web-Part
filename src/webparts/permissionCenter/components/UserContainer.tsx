@@ -24,10 +24,11 @@ const UserContainer: React.FC<Props> = ({ state, props, userEntry, showPermissio
       setCardHeight(cardHeight == '0' ? 'auto' : '0' );
     };
 
-    const isNoCompanyAdmin = (state.users[userEntry].name !== "Company Administrator");
-    if (state.users[userEntry].permissionLevel[0]._values) {
-      console.log(userEntry, state.users[userEntry].permissionLevel[0]._values);
-    }
+    let showUserCard = true;
+    /* 
+    if (state.users[userEntry].name.includes("Administrator")) {
+      showUserCard = false;
+    }  */
 
     const userCardComponent = 
       <UserCard state={state} props={props} userEntry={userEntry}/>;
@@ -42,9 +43,9 @@ const UserContainer: React.FC<Props> = ({ state, props, userEntry, showPermissio
         <div className={cssStyles.userRow}  > 
           {props.config.showCardUser
             ? <div 
-              className={isNoCompanyAdmin ? isUserCardExpanded ? cssStyles.userActive : cssStyles.user : cssStyles.userInvalid} 
-              onClick={isNoCompanyAdmin && _toggleExpandUserCard}
-              title = {isNoCompanyAdmin && (isUserCardExpanded ? "Collapse user card" : "Expand user card") }
+              className={showUserCard ? isUserCardExpanded ? cssStyles.userActive : cssStyles.user : cssStyles.userInvalid} 
+              onClick={showUserCard && _toggleExpandUserCard}
+              title = {showUserCard && (isUserCardExpanded ? "Collapse user card" : "Expand user card") }
               aria-expanded={ cardHeight !== '0' }
               aria-controls= 'userCard'
               >
@@ -75,7 +76,7 @@ const UserContainer: React.FC<Props> = ({ state, props, userEntry, showPermissio
           }
         </div>
         
-        {isNoCompanyAdmin && (
+        {showUserCard && (
           props.config.animateHeightUserCard 
           ? <AnimateHeight 
               id='userCard'

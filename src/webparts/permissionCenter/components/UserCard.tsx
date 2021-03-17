@@ -113,7 +113,7 @@ const UserCard: React.FC<Props> = (({state, props, userEntry}) => {
       try {
         const response = await props.spHttpClient.get(url, SPHttpClient.configurations.v1, clientOptions);
         const responseJson = await response.json();
-        if (props.config.logComponentVars) {console.log(response, responseJson);}
+        if (props.config.logComponentVars) {console.log("Response for user foto url: ", response, responseJson);}
         // if user is external, he has no property PictureUrl. to tell the code that we executed _getFotoUrl for this user, set PictureUrl = null
         if (responseJson.PictureUrl == undefined) {responseJson.PictureUrl = null;}
         return responseJson.PictureUrl;
@@ -123,7 +123,7 @@ const UserCard: React.FC<Props> = (({state, props, userEntry}) => {
       }
     };
     // if userFotoUrl contains no url
-    // check if since load of webpart, we already got the url once, so it would be saved in props.userAndFoto
+    // check if since load of web part, we already got the url once, so it would be saved in props.userAndFoto
     if (!userFotoUrl) {
       // if there is an url in props.userAndFoto, then setUserFotoUrl
       if (props.userAndFoto[userEntry]) {
@@ -402,7 +402,7 @@ const UserCard: React.FC<Props> = (({state, props, userEntry}) => {
       }
     };
     
-    const _addORRemoveAdmin = async (userLoginName, userId, isRemove) => {
+    const _addOrRemoveAdmin = async (userLoginName, userId, isRemove) => {
       
       // if no userId, get sp Id
       if (!userId) {
@@ -489,7 +489,7 @@ const UserCard: React.FC<Props> = (({state, props, userEntry}) => {
       }
     };
 
-    const _addAndRemoveUserFromSpGroup = async (userLoginName, groupId, isRemove) => {
+    const _addOrRemoveUserFromSpGroup = async (userLoginName, groupId, isRemove) => {
       // parameter
       // for add user
       let requestUrl = props.siteCollectionURL + `/_api/web/sitegroups/getbyid(${groupId})/users`;
@@ -577,7 +577,7 @@ const UserCard: React.FC<Props> = (({state, props, userEntry}) => {
       if (props.config.logComponentVars) {console.log("remove user from groups:", removeUserGroupsArray);}
 
       // some variables
-      const userLoginName = `i:0#.f|membership|${state.users[userEntry].principalName}`;
+      const userLoginName = state.users[userEntry].loginName;
       let userAzureId = state.users[userEntry].azureId;
       if (
         (
@@ -617,7 +617,7 @@ const UserCard: React.FC<Props> = (({state, props, userEntry}) => {
               if (removeGroupItem.startsWith('sp')) {
                 // admins
                 if(removeGroupItem==="spGroup1") {
-                  removeResponse = await _addORRemoveAdmin (userLoginName, state.users[userEntry].spId, true);
+                  removeResponse = await _addOrRemoveAdmin (userLoginName, state.users[userEntry].spId, true);
                   // if success / error: if user has no access, error status code will be 500, so it is not possible to display the correct reaosn
                   if (removeResponse.toString().startsWith('2')) {
                     status="success";
@@ -629,7 +629,7 @@ const UserCard: React.FC<Props> = (({state, props, userEntry}) => {
                 // normal sp groups
                 else {
                   const groupId = state.spGroups[removeGroupItem].id;
-                  removeResponse = await _addAndRemoveUserFromSpGroup(userLoginName, groupId, true);
+                  removeResponse = await _addOrRemoveUserFromSpGroup(userLoginName, groupId, true);
                   // if success / error
                   if ((removeResponse==409) || removeResponse.toString().startsWith('2')) {
                     status = "success";
@@ -680,7 +680,7 @@ const UserCard: React.FC<Props> = (({state, props, userEntry}) => {
               if (addGroupItem.startsWith('sp')) {
                 // admins
                 if (addGroupItem==="spGroup1") {
-                  addResponse = await _addORRemoveAdmin (userLoginName, state.users[userEntry].spId, false);
+                  addResponse = await _addOrRemoveAdmin (userLoginName, state.users[userEntry].spId, false);
                   // if success / error: if user has no access, error status code will be 500, so it is not possible to display the correct reaosn
                   if (addResponse.toString().startsWith('2')) {
                     status="success";
@@ -691,7 +691,7 @@ const UserCard: React.FC<Props> = (({state, props, userEntry}) => {
                 // normal sp groups
                 } else {
                   const groupId = state.spGroups[addGroupItem].id;
-                  addResponse = await _addAndRemoveUserFromSpGroup(userLoginName, groupId, false);
+                  addResponse = await _addOrRemoveUserFromSpGroup(userLoginName, groupId, false);
                   if ((addResponse==409) || addResponse.toString().startsWith('2')) {
                     status = "success";
                   } else if ( responseErrorStatusArray.includes(addResponse)) {
