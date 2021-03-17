@@ -18,8 +18,13 @@ export interface IPermissionCenterProps {
     showOwners: boolean,
     showMembers: boolean,
     showDirectAccess: boolean,
+    logState: boolean,
+    logErrors: boolean,
+    throwErrors: boolean,
+    logPermCenterVars: boolean,
+    logComponentVars: boolean
+    
   };
-  throwErrors?: boolean;
   spHttpClient?: SPHttpClient;
   context?: WebPartContext;
   reload?;

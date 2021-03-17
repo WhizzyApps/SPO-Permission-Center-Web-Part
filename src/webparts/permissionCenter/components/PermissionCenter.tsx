@@ -19,9 +19,6 @@ let userCount = 1;
 let azureGroupCount = 1;
 let spGroupCount = 5;
 export let _reload;
-const logLastState = true;
-const showLogs = false;
-const logErrors = false;
 const showLogsOfUserDouble = false;
 const showLogsOfAzureDouble = false;
 const filterM365OwnersGroupFromSpDefaultOwnersGroup = false;
@@ -105,8 +102,8 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
       return responseJson;
     } 
     catch (error) {
-      if (logErrors) {console.log(error);}
-      if (this.props.throwErrors) {throw error;}
+      if (this.props.config.logErrors) {console.log(error);}
+      if (this.props.config.throwErrors) {throw error;}
       error['value'] = [];
       error['status'] = "error";
       return error;
@@ -135,8 +132,8 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
       return responseJson;
     } 
     catch (error) {
-      if (logErrors) {console.log(error);}
-      if (this.props.throwErrors) {throw error;}
+      if (this.props.config.logErrors) {console.log(error);}
+      if (this.props.config.throwErrors) {throw error;}
       error['value'] = [];
       error['status'] = "error";
       return error;
@@ -164,7 +161,7 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
         // catch error for getClient
         .catch(
           (error) => {
-            if (logErrors) {console.log(url, error);}
+            if (this.props.config.logErrors) {console.log(url, error);}
             resolve(error);
           }
         );
@@ -205,7 +202,7 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
       newResponse = await this._graphApiGet(url);
       response.value = response.value.concat(newResponse.value);
     }
-    if (showLogs) { console.log(`${azureGroupEntry} with name ${azureGroupName} members response:`, response );}
+    if (this.props.config.logPermCenterVars) { console.log(`${azureGroupEntry} with name ${azureGroupName} members response:`, response );}
     // if any error just not displaying members
     // if no "response.statusCode", no error occured
     if (!response.statusCode) {
@@ -413,7 +410,7 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
 
     // get sp group permissions
     await this._getAndBuildSpGroupPermissions(spGroupResponse.Id, spGroupEntry);
-    if (showLogs) { console.log(`${spGroupEntry} permission levels after adding new ones:`, this.spGroups[spGroupEntry]['permissionLevel']);}
+    if (this.props.config.logPermCenterVars) { console.log(`${spGroupEntry} permission levels after adding new ones:`, this.spGroups[spGroupEntry]['permissionLevel']);}
 
     // get members
     const response = await this._getSpGroupMembers(spGroupResponse.Id);
@@ -440,7 +437,7 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
       spGroupMembersResponse = "no access";
     }
     // if any other error, spGroupMembersResponse = empty array or undefined
-    if (showLogs) { console.log( `${spGroupEntry} Members response: `, spGroupMembersResponse); }
+    if (this.props.config.logPermCenterVars) { console.log( `${spGroupEntry} Members response: `, spGroupMembersResponse); }
     // write members
     return await this._buildSpGroupMembers(spGroupEntry, spGroupMembersResponse);
   }
@@ -450,7 +447,7 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
   // get site admins
   private async _getAdmins (): Promise<any> { 
     const url = `${this.props.siteCollectionURL}/_api/web/siteusers?$filter=IsSiteAdmin eq true`;
-    if (showLogs) { console.log("----------------_getAdmins executed");}
+    if (this.props.config.logPermCenterVars) { console.log("----------------_getAdmins executed");}
     const response = await this._spApiGet(url);
     const spGroupEntry = "spGroup1";
     this.spGroups.spGroup1.users = [];
@@ -515,7 +512,7 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
     }
     // write members
     
-    if (showLogs) { console.log( `${spGroupEntry} Members response: `, getDirectAccessResponse);}
+    if (this.props.config.logPermCenterVars) { console.log( `${spGroupEntry} Members response: `, getDirectAccessResponse);}
     return await this._buildSpGroupMembers(spGroupEntry, getDirectAccessResponse);
   }
 
@@ -523,11 +520,11 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
   private async _getOtherSpGroups (): Promise<any> {
 
     const url = `${this.props.siteCollectionURL}/_api/web/sitegroups?$select=Id,Title,OwnerTitle,LoginName`;
-    if (showLogs) { console.log("----------------_getOtherSpGroups executed");}
+    if (this.props.config.logPermCenterVars) { console.log("----------------_getOtherSpGroups executed");}
     const allSiteGroupsResponse = await this._spApiGet(url);
     
     // error handling: not needed, because if sp api gives error back, response.value will be an empty array. in this case web part is just not displaying any groups
-    if (showLogs) { console.log('all sitegroups response: ', allSiteGroupsResponse["value"]);}
+    if (this.props.config.logPermCenterVars) { console.log('all sitegroups response: ', allSiteGroupsResponse["value"]);}
     return await Promise.all (
       allSiteGroupsResponse["value"].map(
         async (spGroupResponseItem) => {
@@ -538,7 +535,7 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
             case this.spGroups.spGroup4['id'] : return "spGroup already exists";
             default : {
               const spGroupEntry = `spGroup${spGroupCount}`; spGroupCount += 1;
-              if (showLogs) { console.log(`response entry for ${spGroupEntry}: `, spGroupResponseItem);}
+              if (this.props.config.logPermCenterVars) { console.log(`response entry for ${spGroupEntry}: `, spGroupResponseItem);}
               return await this._buildSpGroupAndGetMembers (spGroupResponseItem, spGroupEntry);
             }
           }
@@ -552,13 +549,13 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
   
   // get default SharePoint groups
   private async _getDefaultSpGroups (defaultGroupArray: string[]): Promise<any> {
-    if (showLogs) { console.log("----------------_getDefaultSpGroups executed");}
+    if (this.props.config.logPermCenterVars) { console.log("----------------_getDefaultSpGroups executed");}
     return await Promise.all(
       defaultGroupArray.map(
         async (defaultGroup) => {
           const url = `${this.props.siteCollectionURL}/_api/web/Associated${defaultGroup}Group?$select=Id,Title,OwnerTitle`;
           const defaultGroupResponse = await this._spApiGet(url);
-          if (showLogs) { console.log(`default ${defaultGroup} response: `, defaultGroupResponse);}
+          if (this.props.config.logPermCenterVars) { console.log(`default ${defaultGroup} response: `, defaultGroupResponse);}
           let groupNr: string;
           switch (defaultGroup) {
             case 'Owner': groupNr = "2"; break;
@@ -1020,8 +1017,8 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
         );
       }
       catch (error) {
-        if (logErrors) {console.log(error);}
-        if (this.props.throwErrors) {throw error;}
+        if (this.props.config.logErrors) {console.log(error);}
+        if (this.props.config.throwErrors) {throw error;}
       }
     }
     return;
@@ -1032,7 +1029,7 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
   // get and display default Sharepoint groups and their members
     private async _firstCallBatch () {
     const resultDefaultGroups = await this._getDefaultSpGroups(["Owner", "Member", "Visitor"]);
-    if (showLogs) { console.log("----------------_getDefaultSpGroups result: ", resultDefaultGroups);}
+    if (this.props.config.logPermCenterVars) { console.log("----------------_getDefaultSpGroups result: ", resultDefaultGroups);}
     this._removeDuplicateAzureGroups ();
     this._removeDuplicateUsers();
     this.sitePermissionLevels = await this._getSitePermissionLevels();
@@ -1043,9 +1040,9 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
 
   // get and display all other Sharepoint groups and their members
   private async _secondCallBatch () {
-    if (showLogs) {console.log("_secondCallBatch executed");}
+    if (this.props.config.logPermCenterVars) {console.log("_secondCallBatch executed");}
     const resultOtherGroups = await this._getOtherSpGroups();
-    if (showLogs) { console.log("----------------_getOtherSpGroups result: ", resultOtherGroups);}
+    if (this.props.config.logPermCenterVars) { console.log("----------------_getOtherSpGroups result: ", resultOtherGroups);}
     this._removeDuplicateAzureGroups ();
     this._sortAzureGroups();
     this._removeDuplicateUsers();
@@ -1058,7 +1055,7 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
     }
 
     await this._getPropsOfSharingGroups();
-    if (showLogs) {console.log("_secondCallBatch finished");}
+    if (this.props.config.logPermCenterVars) {console.log("_secondCallBatch finished");}
     return ;
   }
 
@@ -1075,22 +1072,22 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
         async ()=>{
           // the callback after setState seems not to bubble an error, so it must be wrapped in try catch
           try {
-            if (showLogs) {console.log('Default groups ready');}
+            if (this.props.config.logPermCenterVars) {console.log('Default groups ready');}
             await this._secondCallBatch();
           } catch (error) {
-            if (logErrors) {console.log(error);}
-            if (this.props.throwErrors) {throw error;}
+            if (this.props.config.logErrors) {console.log(error);}
+            if (this.props.config.throwErrors) {throw error;}
           }
           finally {
             this.setState({spGroups: this.spGroups, users: this.users, azureGroups: this.azureGroups, azureGroupArraySorted: this.azureGroupArraySorted, isGroupsLoading: false, hiddenGroupsExist: this.hiddenGroupsExist});
-            if (logLastState) {console.log(this.state);}
+            if (this.props.config.logState) {console.log(this.state);}
           }
         }
       );
     } 
     catch (error) {
-      if (logErrors) {console.log(error);}
-      if (this.props.throwErrors) {throw error;}
+      if (this.props.config.logErrors) {console.log(error);}
+      if (this.props.config.throwErrors) {throw error;}
     }
   }
 
@@ -1193,8 +1190,8 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
       );
     }
     catch (error) {
-      if (logErrors) {console.log(error);}
-      if (this.props.throwErrors) {throw error;}
+      if (this.props.config.logErrors) {console.log(error);}
+      if (this.props.config.throwErrors) {throw error;}
     }
   }
 }

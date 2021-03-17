@@ -9,9 +9,6 @@ import SpGroupCard from './SpGroupCard';
 import SpGroupUsers from './SpGroupUsers';
 import cssStyles from './PermissionCenter.module.scss';
 
-const showLogs = false;
-const logErrors = false;
-
 type Props = {
   spGroupEntry;
   state;
@@ -42,8 +39,8 @@ const SpGroupContainer: React.FC<Props> = ({ spGroupEntry, state, props, hideGro
         return responseJson;
       } 
       catch (error) {
-        if (logErrors) {console.log(error);}
-        if (props.throwErrors) {throw error;}
+        if (props.config.logErrors) {console.log(error);}
+        if (props.config.throwErrors) {throw error;}
         error['value'] = [];
         error['status'] = "error";
         return error;
@@ -253,8 +250,8 @@ const SpGroupContainer: React.FC<Props> = ({ spGroupEntry, state, props, hideGro
     );
     
   } catch (error) {
-    if (showLogs) {console.log(error);}
-    if (props.throwErrors) {throw error;}
+    if (props.config.logComponentVars) {console.log(error);}
+    if (props.config.throwErrors) {throw error;}
   }
 };
 

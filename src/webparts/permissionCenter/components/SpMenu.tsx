@@ -31,7 +31,7 @@ export const SpMenu: React.FunctionComponent<IPermissionCenterProps> = (props) =
 
   } catch (error) {
     // console.log(error);
-    if (props.throwErrors) {throw error;}
+    if (props.config.throwErrors) {throw error;}
   }
 }; 
 

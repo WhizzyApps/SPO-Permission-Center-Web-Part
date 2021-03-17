@@ -4,7 +4,6 @@ import {memo} from 'react';
 import cssStyles from './PermissionCenter.module.scss';
 import UserContainer from './UserContainer';
 
-const showLogs = false;
 type Props = {
     state: any;
     props;
@@ -45,8 +44,8 @@ const AllUsers: React.FC<Props> = ({ state, props, isGroupsLoading }) => {
     </div>;
 
   } catch (error) {
-    if (showLogs) {console.log(error);}
-    if (props.throwErrors) {throw error;}
+    if (props.config.logComponentVars) {console.log(error);}
+    if (props.config.throwErrors) {throw error;}
   }
 };
 

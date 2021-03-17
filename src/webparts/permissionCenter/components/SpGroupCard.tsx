@@ -9,8 +9,6 @@ import { SPHttpClient, ISPHttpClientOptions} from '@microsoft/sp-http';
 
 import cssStyles from './PermissionCenter.module.scss';
 
-let showLogs = false;
-
 interface Props {
   spGroup: any;
   state;
@@ -48,7 +46,7 @@ const GroupCard: React.FC<Props> = ( ({spGroup, state, props}) => {
       };
       try {
         const response = await props.spHttpClient.post(url, SPHttpClient.configurations.v1, clientOptions);
-        if (showLogs) {console.log("delete group response", response);}
+        if (props.config.logComponentVars) {console.log("delete group response", response);}
         // if success
         if (response.ok) {
           // show message
@@ -59,7 +57,7 @@ const GroupCard: React.FC<Props> = ( ({spGroup, state, props}) => {
         // if error
         else {
           const responseJson = await response.json();
-          if (showLogs) {console.log('response', responseJson);}
+          if (props.config.logComponentVars) {console.log('response', responseJson);}
           // show message
           setMessageTitle('SharePoint Error');
           setMessage(responseJson["odata.error"].message.value);
@@ -70,8 +68,8 @@ const GroupCard: React.FC<Props> = ( ({spGroup, state, props}) => {
         setMessageTitle('Error');
         setMessage(`${spGroup.groupName} could not be deleted.`);
         toggleHideMessage();
-        if (showLogs) {console.log(error);}
-        if (props.throwErrors) {throw error;}
+        if (props.config.logComponentVars) {console.log(error);}
+        if (props.config.throwErrors) {throw error;}
       }
     };
 
@@ -118,7 +116,7 @@ const GroupCard: React.FC<Props> = ( ({spGroup, state, props}) => {
           // if error
           else {
             const responseJson = await response.json();
-            if (showLogs) {console.log('response', responseJson);}
+            if (props.config.logComponentVars) {console.log('response', responseJson);}
             // show message
             setMessageTitle('SharePoint Error');
             setMessage(responseJson["odata.error"].message.value);
@@ -129,8 +127,8 @@ const GroupCard: React.FC<Props> = ( ({spGroup, state, props}) => {
           setMessageTitle('Error');
           setMessage(`${spGroup.groupName} could not be deleted.`);
           toggleHideMessage();
-          if (showLogs) {console.log(error);}
-          if (props.throwErrors) {throw error;}
+          if (props.config.logComponentVars) {console.log(error);}
+          if (props.config.throwErrors) {throw error;}
         }
       }
     };
@@ -272,8 +270,8 @@ const GroupCard: React.FC<Props> = ( ({spGroup, state, props}) => {
     );
 
   } catch (error) {
-    if (showLogs) {console.log(error);}
-    if (props.throwErrors) {throw error;}
+    if (props.config.logComponentVars) {console.log(error);}
+    if (props.config.throwErrors) {throw error;}
   }
 });
 export default GroupCard;

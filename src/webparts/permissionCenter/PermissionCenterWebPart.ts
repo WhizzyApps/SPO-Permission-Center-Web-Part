@@ -7,10 +7,9 @@ import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
 import PermissionCenter from './components/PermissionCenter';
 import { IPermissionCenterProps } from './components/IPermissionCenterProps';
 
-const throwErrors = false;
-const showLogs = false;
-const buildTimeStamp = "Build: 2021-03-05 20:23";
 const packageSolution = require("../../../config/package-solution.json");
+const timeStampFile = require("../../../config/timeStamp.json");
+const buildTimeStamp = timeStampFile["buildTimeStamp"];
 
 export interface IPermissionCenterWebPartProps {
   auto: boolean;
@@ -67,6 +66,14 @@ export interface IPermissionCenterWebPartProps {
   visitorShowMembers: boolean;
   visitorShowDirectAccess: boolean;
   visitorShowButtons: boolean;
+
+  debugMode: boolean;
+  logState: boolean;
+  logErrors: boolean;
+  throwErrors: boolean;
+  logPermCenterVars: boolean;
+  logComponentVars: boolean;
+  animateHeightUserCard: boolean;
 }
 
 export default class PermissionCenterWebPart extends BaseClientSideWebPart <IPermissionCenterWebPartProps> {
@@ -241,7 +248,8 @@ export default class PermissionCenterWebPart extends BaseClientSideWebPart <IPer
         this.allowEditProps = true;
       }
         
-      const config = () => {
+
+      const featureConfig = () => {
         if (this.properties.auto) {
           if (this.mode == 'visitor') {
             return {
@@ -326,6 +334,27 @@ export default class PermissionCenterWebPart extends BaseClientSideWebPart <IPer
           };
         }
       };
+      let debugConfig = {
+        "logErrors": false,
+        "logState": false,
+        "throwErrors": false,
+        "logComponentVars": false,
+        "logPermCenterVars": false,
+        "animateHeightUserCard": this.properties.animateHeightUserCard,
+      };
+      if (this.properties.debugMode) {
+        debugConfig = {
+          "logErrors": this.properties.logErrors,
+          "logState": this.properties.logState,
+          "throwErrors": this.properties.throwErrors,
+          "logComponentVars": this.properties.logComponentVars,
+          "logPermCenterVars": this.properties.logPermCenterVars,
+          "animateHeightUserCard": this.properties.animateHeightUserCard,
+        };
+      }
+
+      const config =  {...featureConfig(), ...debugConfig };
+      
 
       const _reRender = () => {
         element.props.userAndFoto = {};
@@ -336,8 +365,7 @@ export default class PermissionCenterWebPart extends BaseClientSideWebPart <IPer
       const element: React.ReactElement<IPermissionCenterProps> = React.createElement(
         PermissionCenter,
         {
-          config: config(),
-          throwErrors: throwErrors,
+          config: config,
           siteCollectionURL: this.context.pageContext.web.absoluteUrl,
           spHttpClient: this.context.spHttpClient,
           context: this.context,
@@ -348,7 +376,7 @@ export default class PermissionCenterWebPart extends BaseClientSideWebPart <IPer
       );
 
 
-      if (showLogs) {console.log("config: ", element.props.config);}
+      if (element.props.config.logPermCenterVars) {console.log("config: ", element.props.config);}
       ReactDom.render(element, this.domElement);
     }
     catch (error) {console.log(error);}
@@ -360,20 +388,23 @@ export default class PermissionCenterWebPart extends BaseClientSideWebPart <IPer
 
   protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {
     
+    // initial variables
     let autoConfig = [];
     let roleConfig = [];
     let config = [];
     let autoConfigName = 'You need to be owner to configure this web part';
     let roleName = null;
     let configName = null;
+    let debugMode = [];
+    let debugFlags = [];
+
     // set default role for dropDown menu
     if (!this.properties.role) {
       this.properties.role = "member";
     }
 
     // define description for web part in property pane with version, buildTimeStamp and link for doc website
-    const descriptionName = "";
-    const description = [
+    const descriptionPage1 = [
       PropertyPaneLabel('version', {  
         text: "Version "  + packageSolution['solution'].version,
       }),
@@ -389,6 +420,10 @@ export default class PermissionCenterWebPart extends BaseClientSideWebPart <IPer
 
     // if current user is allowed to edit web part
     if (this.allowEditProps) {
+      
+      // Property pane page 1
+      // --------------------
+    
       autoConfigName = null;
       autoConfig = [ 
         PropertyPaneToggle('auto', {
@@ -661,7 +696,55 @@ export default class PermissionCenterWebPart extends BaseClientSideWebPart <IPer
           })
         ];
       }
+      
+      // Property pane page 2
+      // --------------------
+      debugMode = [ 
+        PropertyPaneToggle('debugMode', {
+          label: 'Debug mode',
+          onText: "On",
+          offText: "Off"
+        })
+      ];
+
+      // debug mode
+      if (this.properties.debugMode) {
+        
+        debugFlags = [
+          PropertyPaneToggle('logState', {
+            label: 'Log state to console',
+            onText: "On",
+            offText: "Off"
+          }),
+          PropertyPaneToggle('throwErrors', {
+            label: 'Throw errors',
+            onText: "On",
+            offText: "Off"
+          }),
+          PropertyPaneToggle('logErrors', {
+            label: 'Log errors to console',
+            onText: "On",
+            offText: "Off"
+          }),
+          PropertyPaneToggle('logPermCenterVars', {
+            label: 'Log variables of main components',
+            onText: "On",
+            offText: "Off"
+          }),
+          PropertyPaneToggle('logComponentVars', {
+            label: 'Log variables of other components',
+            onText: "On",
+            offText: "Off"
+          }),
+          PropertyPaneToggle('animateHeightUserCard', {
+            label: 'Use animate height for user card',
+            onText: "On",
+            offText: "Off"
+          })
+        ];
+      }
     }
+    
 
     return {
       pages: [
@@ -671,8 +754,8 @@ export default class PermissionCenterWebPart extends BaseClientSideWebPart <IPer
           },
           groups: [
             {
-              groupName: descriptionName,
-              groupFields: description
+              groupName: '',
+              groupFields: descriptionPage1
             },
             {
               groupName: autoConfigName,
@@ -685,6 +768,21 @@ export default class PermissionCenterWebPart extends BaseClientSideWebPart <IPer
             {
               groupName: configName,
               groupFields: config
+            }
+          ]
+        },
+        {
+          header: {
+            description: "Debug page"
+          },
+          groups: [
+            {
+              groupName: '',
+              groupFields: debugMode
+            },
+            {
+              groupName: '',
+              groupFields: debugFlags
             }
           ]
         }

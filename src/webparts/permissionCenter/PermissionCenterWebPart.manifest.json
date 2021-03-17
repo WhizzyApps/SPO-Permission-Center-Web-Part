@@ -67,7 +67,16 @@
       "visitorShowAdmins": false,
       "visitorShowOwners": true,
       "visitorShowMembers": false,
-      "visitorShowDirectAccess": false
+      "visitorShowDirectAccess": false,
+
+      "debugMode": false,
+      "logState": false,
+      "logErrors": false,
+      "logVars": false,
+      "throwErrors": false,
+      "logPermCenterVars": false,
+      "logComponentVars": false,
+      "animateHeightUserCard": true
       
     }
   }]

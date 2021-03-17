@@ -13,9 +13,9 @@ const buildTimeStamp = isoDate + ' ' + isoTime;
 
  
 const replaceBuildTimeStamp = build.subTask ('replaceBuildTimeStamp', function () {
-  return gulp.src(['src/webparts/permissionCenter/PermissionCenterWebPart.ts'])
+  return gulp.src(['config/timeStamp.json'])
     .pipe(replace(regexp, buildTimeStamp))
-    .pipe(gulp.dest('src/webparts/permissionCenter/'))
+    .pipe(gulp.dest('config/'))
     ;
 });
 

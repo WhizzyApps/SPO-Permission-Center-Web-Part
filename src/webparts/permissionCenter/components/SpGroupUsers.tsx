@@ -4,8 +4,6 @@ import {memo} from 'react';
 import cssStyles from './PermissionCenter.module.scss';
 import UserContainer from './UserContainer';
 
-const showLogs = false;
-
 type Props = {
     spGroupEntry: string;
     state: any;
@@ -71,8 +69,8 @@ const SpGroupContainer: React.FC<Props> = ({ spGroupEntry, state, props }) => {
     </div>;
     
   } catch (error) {
-    if (showLogs) {console.log(error);}
-    if (props.throwErrors) {throw error;}
+    if (props.config.logComponentVars) {console.log(error);}
+    if (props.config.throwErrors) {throw error;}
   }
 };
 

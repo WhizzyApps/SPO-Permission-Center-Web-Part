@@ -28,6 +28,14 @@ const UserContainer: React.FC<Props> = ({ state, props, userEntry, showPermissio
     if (state.users[userEntry].permissionLevel[0]._values) {
       console.log(userEntry, state.users[userEntry].permissionLevel[0]._values);
     }
+
+    const userCardComponent = 
+      <UserCard state={state} props={props} userEntry={userEntry}/>;
+
+    const _toggleExpandUserCardAlternative = () => {
+      setUserCardExpanded(!isUserCardExpanded);
+    };
+
     return (
       <div className={cssStyles.userRowContainer}>
         
@@ -68,20 +76,35 @@ const UserContainer: React.FC<Props> = ({ state, props, userEntry, showPermissio
         </div>
         
         {isNoCompanyAdmin && (
-          <AnimateHeight 
-            id='userCard'
-            duration={100}
-            height={cardHeight}
-          >
-            {isUserCardExpanded && <UserCard state= {state} props={props} userEntry={userEntry}/>}
-          </AnimateHeight>
+          props.config.animateHeightUserCard 
+          ? <AnimateHeight 
+              id='userCard'
+              duration={100}
+              height={cardHeight}
+            >
+              {isUserCardExpanded && (
+                props.config.logComponentVars && console.log("isUserCardExpanded", isUserCardExpanded, "cardHeight", cardHeight),
+                props.config.logComponentVars && console.log("userCardComponent", userCardComponent),
+                userCardComponent
+              )}
+
+            </AnimateHeight>
+          : (
+            <div onClick={_toggleExpandUserCardAlternative}>
+              {isUserCardExpanded && (
+                props.config.logComponentVars && console.log("isUserCardExpanded", isUserCardExpanded),
+                props.config.logComponentVars && console.log("userCardComponent", userCardComponent),
+                userCardComponent)}
+            </div>
+            
+          )
         )}
       </div>
     );
   }
   catch (error) {
     // console.log(error);
-    if (props.throwErrors) {throw error;}
+    if (props.config.throwErrors) {throw error;}
   }
 };
 

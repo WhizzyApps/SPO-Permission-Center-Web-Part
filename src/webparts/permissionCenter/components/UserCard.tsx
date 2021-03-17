@@ -34,15 +34,13 @@ interface Props {
   props;
   userEntry: string;
 }
-const showLogs = false;
-const logErrors = false;
 let removeUserGroupsArray = [];
 let addUserGroupsArray = [];
 const responseErrorStatusArray = [401, 403, 407, 507];
 
 // main function
 const UserCard: React.FC<Props> = (({state, props, userEntry}) => {
-
+  
   try {
 
     // ------------ api calls --------------
@@ -64,8 +62,8 @@ const UserCard: React.FC<Props> = (({state, props, userEntry}) => {
         return responseJson;
       } 
       catch (error) {
-        if (logErrors) {console.log(error);}
-        if (props.throwErrors) {throw error;}
+        if (props.config.logErrors) {console.log(error);}
+        if (props.config.throwErrors) {throw error;}
         error['value'] = [];
         error['status'] = "error";
         return error;
@@ -92,7 +90,7 @@ const UserCard: React.FC<Props> = (({state, props, userEntry}) => {
           // catch error for getClient
           .catch(
             (error) => {
-              if (logErrors) {console.log(error);}
+              if (props.config.logErrors) {console.log(error);}
               resolve(error);
             }
           );
@@ -115,13 +113,13 @@ const UserCard: React.FC<Props> = (({state, props, userEntry}) => {
       try {
         const response = await props.spHttpClient.get(url, SPHttpClient.configurations.v1, clientOptions);
         const responseJson = await response.json();
-        if (showLogs) {console.log(response, responseJson);}
+        if (props.config.logComponentVars) {console.log(response, responseJson);}
         // if user is external, he has no property PictureUrl. to tell the code that we executed _getFotoUrl for this user, set PictureUrl = null
         if (responseJson.PictureUrl == undefined) {responseJson.PictureUrl = null;}
         return responseJson.PictureUrl;
       } catch (error) {
-        if (logErrors) {console.log(error);}
-        if (props.throwErrors) {throw error;}
+        if (props.config.logErrors) {console.log(error);}
+        if (props.config.throwErrors) {throw error;}
       }
     };
     // if userFotoUrl contains no url
@@ -129,19 +127,19 @@ const UserCard: React.FC<Props> = (({state, props, userEntry}) => {
     if (!userFotoUrl) {
       // if there is an url in props.userAndFoto, then setUserFotoUrl
       if (props.userAndFoto[userEntry]) {
-        if (showLogs) {console.log("props.userAndFoto[userEntry] exists", props.userAndFoto[userEntry]);}
+        if (props.config.logComponentVars) {console.log("props.userAndFoto[userEntry] exists", props.userAndFoto[userEntry]);}
         setUserFotoUrl (props.userAndFoto[userEntry]);
       // if there is no url in props.userAndFoto
       } else {
         // if props.userAndFoto would be null, we would have tried to get the url once since loading of web part, because if there is no picture for this user, the response is null
         if (props.userAndFoto[userEntry]!==null) {
-          if (showLogs) {console.log("props.userAndFoto[userEntry] empty. ");}
+          if (props.config.logComponentVars) {console.log("props.userAndFoto[userEntry] empty. ");}
           _getFotoUrl().then(
             (url) => {
               props.userAndFoto[userEntry] = url;
               currentUserFotoUrl.current = url;
               setUserFotoUrl(currentUserFotoUrl.current);
-              if (showLogs) {console.log("props.userAndFoto[userEntry] updated", url);}
+              if (props.config.logComponentVars) {console.log("props.userAndFoto[userEntry] updated", url);}
             }
           );
         }
@@ -152,7 +150,7 @@ const UserCard: React.FC<Props> = (({state, props, userEntry}) => {
 
     // open Sp group
     const _openSpGroup = (groupEntry, event) => {
-      if (showLogs) {console.log("event.currentTarget.className: ", event.currentTarget.className);}
+      if (props.config.logComponentVars) {console.log("event.currentTarget.className: ", event.currentTarget.className);}
       if (event.currentTarget.className.includes('nestedGroup') // fix the bug: outer click
         && (groupEntry !== "spGroup1") // leave admins out
         ) { 
@@ -166,7 +164,7 @@ const UserCard: React.FC<Props> = (({state, props, userEntry}) => {
     };
     // open Azure group
     const _openAzureGroup = (groupEntry, event) => {
-      if (showLogs) {console.log("event.currentTarget.className: ", event.currentTarget.className);}
+      if (props.config.logComponentVars) {console.log("event.currentTarget.className: ", event.currentTarget.className);}
       if (event.currentTarget.className.includes('nestedGroup')) { // fix the bug: outer click
         let role = "Members";
         let groupID = state.azureGroups[groupEntry].id;
@@ -180,7 +178,7 @@ const UserCard: React.FC<Props> = (({state, props, userEntry}) => {
     
     // open user in Azure portal
     const _openUserInAzure = async (event) => {
-      if (showLogs) {console.log("event.currentTarget.className: ", event.currentTarget.className);}
+      if (props.config.logComponentVars) {console.log("event.currentTarget.className: ", event.currentTarget.className);}
       if (event.currentTarget.className.includes("nestedGroup")) { // fix the bug: outer click
         if (state.users[userEntry].principalName.includes("@")) {
           // if state has azureId of user, open user in Azure
@@ -447,8 +445,8 @@ const UserCard: React.FC<Props> = (({state, props, userEntry}) => {
               }
             } 
             catch (error) {
-              if (logErrors) {console.log(error);}
-              if (props.throwErrors) {throw error;}
+              if (props.config.logErrors) {console.log(error);}
+              if (props.config.throwErrors) {throw error;}
               error['value'] = [];
               error['status'] = "error";
             }
@@ -481,8 +479,8 @@ const UserCard: React.FC<Props> = (({state, props, userEntry}) => {
           return response.status;
         } 
         catch (error) {
-          if (logErrors) {console.log(error);}
-          if (props.throwErrors) {throw error;}
+          if (props.config.logErrors) {console.log(error);}
+          if (props.config.throwErrors) {throw error;}
           return error;
         }
       } 
@@ -522,8 +520,8 @@ const UserCard: React.FC<Props> = (({state, props, userEntry}) => {
         const response = await props.spHttpClient.post(requestUrl, SPHttpClient.configurations.v1, spOpts);
         return response.status;
       } catch (error) {
-        if (logErrors) {console.log(error);}
-        if (props.throwErrors) {throw error;}
+        if (props.config.logErrors) {console.log(error);}
+        if (props.config.throwErrors) {throw error;}
       }
     };
     
@@ -561,7 +559,7 @@ const UserCard: React.FC<Props> = (({state, props, userEntry}) => {
       )
       .catch(
         error => {
-          if (logErrors) {console.log(error);}
+          if (props.config.logErrors) {console.log(error);}
           return error.statusCode;
         }
       );
@@ -574,9 +572,9 @@ const UserCard: React.FC<Props> = (({state, props, userEntry}) => {
     const _changeGroupMembership = async () => {
       setChangeMembershipExecuted(true);
       // take membership from _getUserMembership in _openDialog_changeGroupMembership
-      if (showLogs) {console.log("userMembershipArrayState on change membership button", userMembershipArrayState);}
-      if (showLogs) {console.log("add user to groups:", addUserGroupsArray);}
-      if (showLogs) {console.log("remove user from groups:", removeUserGroupsArray);}
+      if (props.config.logComponentVars) {console.log("userMembershipArrayState on change membership button", userMembershipArrayState);}
+      if (props.config.logComponentVars) {console.log("add user to groups:", addUserGroupsArray);}
+      if (props.config.logComponentVars) {console.log("remove user from groups:", removeUserGroupsArray);}
 
       // some variables
       const userLoginName = `i:0#.f|membership|${state.users[userEntry].principalName}`;
@@ -664,7 +662,7 @@ const UserCard: React.FC<Props> = (({state, props, userEntry}) => {
                 }
               }
               changeGroupMembershipFeedback[removeGroupItem] = {status: status};
-              if (showLogs) {console.log(removeGroupItem, " removeUserResponse: ", removeResponse);}
+              if (props.config.logComponentVars) {console.log(removeGroupItem, " removeUserResponse: ", removeResponse);}
               return removeResponse;
             }
           )
@@ -720,7 +718,7 @@ const UserCard: React.FC<Props> = (({state, props, userEntry}) => {
                   else status = "error" ;
                 }
               }
-              if (showLogs) {console.log(addGroupItem, " addUserResponse:", addResponse);}
+              if (props.config.logComponentVars) {console.log(addGroupItem, " addUserResponse:", addResponse);}
 
               changeGroupMembershipFeedback[addGroupItem] = {status: status};
               return addResponse;
@@ -729,7 +727,7 @@ const UserCard: React.FC<Props> = (({state, props, userEntry}) => {
         )
       ]).then(()=>{
           // when done, show message
-          if (showLogs) {console.log("changeGroupMembershipFeedback", changeGroupMembershipFeedback);}
+          if (props.config.logComponentVars) {console.log("changeGroupMembershipFeedback", changeGroupMembershipFeedback);}
           setChangeGroupMembershipFeedbackState(changeGroupMembershipFeedback);
           setMembershipChanged(true);
       });
@@ -819,7 +817,7 @@ const UserCard: React.FC<Props> = (({state, props, userEntry}) => {
         const response = await props.spHttpClient.post(requestUrl, SPHttpClient.configurations.v1, spOpts);
         // if success
         if (response.ok) {
-          if (showLogs) {console.log('_deleteUserFromSite response', response);}
+          if (props.config.logComponentVars) {console.log('_deleteUserFromSite response', response);}
           // show message
           setDeleteUserFromSiteMessageTitle('Success');
           setDeleteUserFromSiteMessage(`${state.users[userEntry].name} removed from all SharePoint groups.`);
@@ -828,7 +826,7 @@ const UserCard: React.FC<Props> = (({state, props, userEntry}) => {
         // if error
         else {
           const responseJson = await response.json();
-          if (showLogs) {console.log('response', responseJson);}
+          if (props.config.logComponentVars) {console.log('response', responseJson);}
           // show message
           setDeleteUserFromSiteMessageTitle('SharePoint Error');
           setDeleteUserFromSiteMessage(responseJson["odata.error"].message.value);
@@ -836,8 +834,8 @@ const UserCard: React.FC<Props> = (({state, props, userEntry}) => {
         }
       // if other error
       } catch (error) {
-        if (logErrors) {console.log('_deleteUserFromSite error: ', error);}
-        if (props.throwErrors) {throw error;}
+        if (props.config.logErrors) {console.log('_deleteUserFromSite error: ', error);}
+        if (props.config.throwErrors) {throw error;}
         // show message
         setDeleteUserFromSiteMessageTitle('Error');
         setDeleteUserFromSiteMessage('User could not be removed.');
@@ -854,7 +852,7 @@ const UserCard: React.FC<Props> = (({state, props, userEntry}) => {
     };
 
     const _openClassicPropertyPage = async (event) => {
-      if (showLogs) {console.log("event.currentTarget.className", event.currentTarget.className);}
+      if (props.config.logComponentVars) {console.log("event.currentTarget.className", event.currentTarget.className);}
       if (event.currentTarget.className.includes("myClick")) { // fix the bug: outer click
         if (state.users[userEntry].spId) {
           // if sp id exists, open classic property page
@@ -866,7 +864,7 @@ const UserCard: React.FC<Props> = (({state, props, userEntry}) => {
           if (response["Id"]) {
             state.users[userEntry].spId = response["Id"];
             window.open(props.siteCollectionURL + `/_layouts/15/userdisp.aspx?ID=${response["Id"]}&force=1`);
-            if (showLogs) {console.log("_openClassicPropertyPage user id response",response["Id"]);}
+            if (props.config.logComponentVars) {console.log("_openClassicPropertyPage user id response",response["Id"]);}
           } 
           // if not, user does not exist in Sp, so open dialog
           else {_openDialog_openUserInAzure();}
@@ -885,7 +883,7 @@ const UserCard: React.FC<Props> = (({state, props, userEntry}) => {
         alert('Something went wrong. Try it manually.');
       }
     };
-
+    
     //------------------------------- return ---------------------------------
     return (
       <div className={ cssStyles.userCard }>
@@ -896,13 +894,13 @@ const UserCard: React.FC<Props> = (({state, props, userEntry}) => {
           {/* info content */}
           <div>
 
-            {showLogs && console.log("Component return: currentUserFotoUrl.current", currentUserFotoUrl.current)}
+            {props.config.logComponentVars && console.log("UserCard return - currentUserFotoUrl =", currentUserFotoUrl, "userFotoUrl =", userFotoUrl )}
             <div style={{ display:"flex", padding: '0 0'}}>
               <div className = {cssStyles.persona}>
                 <Persona
                   showUnknownPersonaCoin={userFotoUrl ? false : true}
                   imageUrl={userFotoUrl}
-                  size={PersonaSize.size40} 
+                  size={PersonaSize.size40}
                 />
               </div>
               <div style={{ padding: '0 0'}}>
@@ -1159,8 +1157,8 @@ const UserCard: React.FC<Props> = (({state, props, userEntry}) => {
     );
   }
   catch (error) {
-    if (logErrors) {console.log(error);}
-    if (props.throwErrors) {throw error;}
+    if (props.config.logErrors) {console.log(error);}
+    if (props.config.throwErrors) {throw error;}
   }
 });
 export default memo(UserCard);
