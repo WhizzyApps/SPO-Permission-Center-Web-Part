@@ -1,0 +1,74 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx/client-side-web-part-manifest.schema.json",
+  "id": "c9cd1e52-5479-4439-9e98-28989aa6ddd1",
+  "alias": "PermissionCenterWebPart",
+  "componentType": "WebPart",
+
+  
+  "version": "*",
+  "manifestVersion": 2,
+
+  "supportedHosts": ["SharePointWebPart"],
+
+  "preconfiguredEntries": [{
+    "groupId": "5c03119e-3074-46fd-976b-c60198311f70",
+    "group": { "default": "Other" },
+    "title": { "default": "Permission Center" },
+    "description": { "default": "View and manage permissions" },
+    "officeFabricIconFontName": "Page",
+    "properties": {
+      
+      "auto": true,
+      "role": "member",
+
+      "manualShowMenu": true,
+      "manualShowTabUsers": true,
+      "manualShowTabHidden": true,
+      "manualShowCardGroup": true,
+      "manualShowCardUser": true,
+      "manualShowCardButtons": true,
+      "manualShowCardUserLinks": true,
+      "manualShowAdmins": true,
+      "manualShowOwners": true,
+      "manualShowMembers": true,
+      "manualShowDirectAccess": true,
+
+      "ownerShowMenu": true,
+      "ownerShowTabUsers": true,
+      "ownerShowTabHidden": true,
+      "ownerShowCardGroup": true,
+      "ownerShowCardUser": true,
+      "ownerShowCardButtons": true,
+      "ownerShowCardUserLinks": true,
+      "ownerShowAdmins": false,
+      "ownerShowOwners": true,
+      "ownerShowMembers": true,
+      "ownerShowDirectAccess": true,
+
+      "memberShowMenu": false,
+      "memberShowTabUsers": true,
+      "memberShowTabHidden": false,
+      "memberShowCardGroup": true,
+      "memberShowCardUser": true,
+      "memberShowCardButtons": false,
+      "memberShowCardUserLinks": true,
+      "memberShowAdmins": false,
+      "memberShowOwners": true,
+      "memberShowMembers": true,
+      "memberShowDirectAccess": false,
+
+      "visitorShowMenu": false,
+      "visitorShowTabUsers": false,
+      "visitorShowTabHidden": false,
+      "visitorShowCardGroup": false,
+      "visitorShowCardUser": false,
+      "visitorShowCardButtons": false,
+      "visitorShowCardUserLinks": false,
+      "visitorShowAdmins": false,
+      "visitorShowOwners": true,
+      "visitorShowMembers": false,
+      "visitorShowDirectAccess": false
+      
+    }
+  }]
+}

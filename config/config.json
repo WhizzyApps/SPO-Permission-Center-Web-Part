@@ -1,0 +1,18 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/config.2.0.schema.json",
+  "version": "2.0",
+  "bundles": {
+    "permission-center-web-part": {
+      "components": [
+        {
+          "entrypoint": "./lib/webparts/permissionCenter/PermissionCenterWebPart.js",
+          "manifest": "./src/webparts/permissionCenter/PermissionCenterWebPart.manifest.json"
+        }
+      ]
+    }
+  },
+  "externals": {},
+  "localizedResources": {
+    "PermissionCenterWebPartStrings": "lib/webparts/permissionCenter/loc/{locale}.js"
+  }
+}

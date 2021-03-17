@@ -1,0 +1,21 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/package-solution.schema.json",
+  "solution": {
+    "name": "Permission Center web part",
+    "id": "890f2e8a-6e2a-4049-822d-c7ca8a6e4069",
+    "title": "Permission Center web part",
+    "supportedLocales" : ["en-us"],
+    "version": "1.0.0.0",
+    "includeClientSideAssets": true,
+    "isDomainIsolated": false,
+    "webApiPermissionRequests": [
+      {
+        "resource": "Microsoft Graph",
+        "scope": "Directory.AccessAsUser.All"
+      }
+    ]
+  },
+  "paths": {
+    "zippedPackage": "solution/permission-center-webpart.sppkg"
+  }
+}

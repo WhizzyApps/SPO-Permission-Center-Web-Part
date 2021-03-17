@@ -1,0 +1,83 @@
+
+body {
+    margin: 3.125rem;
+    font-family:'Arial', sans-serif;
+}
+*{margin:0;padding: 0;}
+
+h1 {
+    color:#FA9A39;
+}
+
+p { padding-bottom: 3.125rem;}
+
+.content { 
+    width:31.25rem;
+    margin:auto;
+}
+.tree ul {
+    margin-left: 1.25rem;
+}
+
+.tree li {
+    list-style-type: none;
+    margin:0;
+    position: relative;
+}
+
+.tree li::before {
+    content: "";
+    position: absolute;
+    top: -0.125rem;
+    left: -0.6875rem;
+    border-left: 0.0625rem solid #ccc;
+    border-bottom: 0.0625rem solid #ccc;
+    border-radius: 0 0 0 0;
+    width: 0.625rem;
+    height: 0.9375rem;
+}
+
+.tree li::after {
+    position:absolute;
+    content:"";
+    top: 0.5rem;
+    left: -0.6875rem;
+    border-left: 0.0625rem solid #ccc;
+    border-radius: 0 0 0 0;
+    width: 0.625rem;
+    height: 100%;
+}
+
+.tree li:last-child::after  {
+    display:none;
+}
+
+.tree li:last-child:before{
+    border-radius: 0 0 0 0.3125rem;
+}
+
+ul.tree>li:first-child::before {
+    display:none;
+}
+
+ul.tree>li:first-child::after {
+    border-radius: 0.3125rem 0 0 0;
+}
+
+.tree li a {
+    border: 0.0625rem #ccc solid;
+    border-radius: 0.3125rem;
+    padding: 0.125rem 0.3125rem;
+}
+
+.tree li a:hover, .tree li a:hover+ul li a,
+.tree li a:focus, .tree li a:focus+ul li a {
+    background: #ccc; color: #000; border: 0.0625rem solid #000;
+}
+
+.tree li a:hover+ul li::after, .tree li a:focus+ul li::after,
+.tree li a:hover+ul li::before, .tree li a:focus+ul li::before 
+.tree li a:hover+ul::before, .tree li a:focus+ul::before 
+.tree li a:hover+ul ul::before, .tree li a:focus+ul ul::before{
+    border-color:  #000; /*connector color on hover*/
+}
