@@ -31,12 +31,11 @@ const UserContainer: React.FC<Props> = ({ state, props, userEntry, showPermissio
     }  */
 
     const userCardComponent = 
-      <UserCard state={state} props={props} userEntry={userEntry}/>;
+      <UserCard state={state} props={props} userEntry={userEntry} />;
 
     const _toggleExpandUserCardAlternative = () => {
       setUserCardExpanded(!isUserCardExpanded);
     };
-
     return (
       <div className={cssStyles.userRowContainer}>
         
@@ -52,12 +51,14 @@ const UserContainer: React.FC<Props> = ({ state, props, userEntry, showPermissio
               {state.users[userEntry].name}
               {/* for user tab */}
               {showPermissions 
-                && (<span> {
-                  state.users[userEntry].permissionLevel[0] 
-                  && state.users[userEntry].permissionLevel[0]._values // of IE11 because "...new Set" creates a different object (in PermissionCenter.tsx)
-                    ? '(' + state.users[userEntry].permissionLevel[0]._values.join(", ") + ')'
-                    : '(' + state.users[userEntry].permissionLevel.join(", ") + ')'
-                } </span>) 
+                && (state.users[userEntry].permissionLevel[0] 
+                  ? (<span> {
+                      state.users[userEntry].permissionLevel[0]._values // for IE11, because "...new Set" creates a different object (in PermissionCenter.tsx)
+                      ? '(' + state.users[userEntry].permissionLevel[0]._values.join(", ") + ')'
+                      : '(' + state.users[userEntry].permissionLevel.join(", ") + ')'
+                    } </span>)
+                  : ""
+                )
               }
               {/* for groups tab and hidden groups tab */}
               {showPermissionsDirectAccess 
@@ -77,28 +78,27 @@ const UserContainer: React.FC<Props> = ({ state, props, userEntry, showPermissio
         </div>
         
         {showUserCard && (
-          props.config.animateHeightUserCard 
-          ? <AnimateHeight 
-              id='userCard'
-              duration={100}
-              height={cardHeight}
-            >
-              {isUserCardExpanded && (
-                props.config.logComponentVars && console.log("isUserCardExpanded", isUserCardExpanded, "cardHeight", cardHeight),
-                props.config.logComponentVars && console.log("userCardComponent", userCardComponent),
-                userCardComponent
-              )}
-
-            </AnimateHeight>
-          : (
+          props.config.disableAnimateHeightUserCard
+          ? (
             <div onClick={_toggleExpandUserCardAlternative}>
               {isUserCardExpanded && (
                 props.config.logComponentVars && console.log("isUserCardExpanded", isUserCardExpanded),
                 props.config.logComponentVars && console.log("userCardComponent", userCardComponent),
                 userCardComponent)}
             </div>
-            
           )
+          : <AnimateHeight 
+            id='userCard'
+            duration={100}
+            height={cardHeight}
+            >
+            {isUserCardExpanded && (
+              props.config.logComponentVars && console.log("isUserCardExpanded", isUserCardExpanded, "cardHeight", cardHeight),
+              props.config.logComponentVars && console.log("userCardComponent", userCardComponent),
+              userCardComponent
+            )}
+
+          </AnimateHeight>
         )}
       </div>
     );

@@ -22,7 +22,7 @@ const SpGroupContainer: React.FC<Props> = ({ spGroupEntry, state, props, hideGro
   
   try {
       
-    // get data from SharePoint REST Api
+    // get data from SharePoint REST API
     const _spApiGet = async (url: string): Promise<object> => {
       const clientOptions: ISPHttpClientOptions = {
         headers: new Headers(),
@@ -63,32 +63,45 @@ const SpGroupContainer: React.FC<Props> = ({ spGroupEntry, state, props, hideGro
     };
 
     // open document / folder
-    const _openItem = () => {
+    const _openItem = async () => {
       // decide if folder or item
-      const pathSplit = state.spGroups[spGroupEntry].item.parentLink.split('/');
+      const pathSplit = state.spGroups[spGroupEntry].item.path.split('/');
       const pathLastPart = pathSplit[pathSplit.length-1];
-      const isFolder = pathLastPart.includes('.');
-
+      let isDocument = pathLastPart.includes('.');
+      const isFolderOrOnenote = !isDocument;
+      // check if Folder or Onnote
+      if (isFolderOrOnenote) {
+        const requestUrl = `${props.siteCollectionURL}/_api/web/Lists('${state.spGroups[spGroupEntry].item.listId}')/GetItemByUniqueId('${state.spGroups[spGroupEntry].item.guid}')/folder`;
+        const getItemResult = await _spApiGet(requestUrl);
+        // if getItemResult["ProgID"] contains anything (should start with "OneNote"), then is OneNote document
+        if (getItemResult["ProgID"]) {
+          isDocument = true;
+        }
+      }
+      
+      // if document, open document
+      if (isDocument) {
+        const urlDoc = `${props.siteCollectionURL}/_layouts/15/Doc.aspx?sourcedoc=%7B${state.spGroups[spGroupEntry].item.guid}%7D`;
+        window.open(urlDoc);
+      }
       // if folder, open folder
-      if (isFolder) {
+      else {
         const pathFolder = `${props.siteCollectionURL}/${state.spGroups[spGroupEntry].item.path}` ;
         const rootPath = pathFolder.slice(0,-state.spGroups[spGroupEntry].item.title.length);
         const urlFolder = `${rootPath}Forms/AllItems.aspx?id=${encodeURIComponent(pathFolder)}`;
         window.open(urlFolder);
       } 
-      // if document, open document
-      else {
-        window.open(`${props.siteCollectionURL}/_layouts/15/Doc.aspx?sourcedoc=%7B${state.spGroups[spGroupEntry].item.guid}%7D`);
-      }
     };
 
     // open item permissions
     const _openItemPermissions = async () => {
+      // get spId of item
       const guid = state.spGroups[spGroupEntry].item.guid;
       const listId = state.spGroups[spGroupEntry].item.listId;
       const requestUrl = `${props.siteCollectionURL}/_api/web/Lists('${listId}')/GetItemByUniqueId('${guid}')?$Select=Id`;
       const getPermResult = await _spApiGet(requestUrl);
       const spId = getPermResult["Id"];
+      // open permissions page
       const permissionsPage = `${props.siteCollectionURL}/_layouts/15/user.aspx?obj=%7B${listId}%7D,${spId},LISTITEM`;
       window.open(permissionsPage);
     };
@@ -156,7 +169,7 @@ const SpGroupContainer: React.FC<Props> = ({ spGroupEntry, state, props, hideGro
                 {state.spGroups[spGroupEntry].subTitle && state.spGroups[spGroupEntry].subTitle}
               </span>
 
-              {/* for sharing group: link to shared item */}
+              {/* for sharing group: link to shared item and permissions */}
               {/* state.spGroups[spGroupEntry].item exists only on sharing groups */}
               
               {state.spGroups[spGroupEntry].item && (
@@ -165,12 +178,14 @@ const SpGroupContainer: React.FC<Props> = ({ spGroupEntry, state, props, hideGro
                     onClick={()=> _openItem()}
                     className={cssStyles.groupTitleLinkOpen}
                     title= 'Open Document/Folder'
-                  >Open item</div>
+                    > Open item 
+                  </div>
                   <div 
                     onClick={()=> _openItemPermissions()}
                     className={cssStyles.groupTitleLinkPerm}
                     title= 'Open permissions page of item'
-                  >Permissions</div>
+                    > Permissions 
+                  </div>
                 </>
               )}
 
@@ -205,7 +220,7 @@ const SpGroupContainer: React.FC<Props> = ({ spGroupEntry, state, props, hideGro
                 onClick= {(event)=>{(isNoAdminsGroup && isNoDirectAccessGroup) ? _toggleExpandCard() : _permissionsPage(event);}} // open permission page instead if admins or Access given directly
                 aria-expanded={ cardHeight !== '0' }
                 aria-controls= 'cardAndUsers'
-                title = {isNoAdminsGroup ? (isNoDirectAccessGroup ? (isCardExpanded ? "Show users" : "Show group card to edit group") : 'Open classic permissions page to manage members with Access given directly') : "Open classic permissions page to manage admins"} // change tooltip if admins or Access given directly
+                title = {isNoAdminsGroup ? (isNoDirectAccessGroup ? (isCardExpanded ? "Show users" : "Show group card to edit group") : 'Open classic permissions page to change Access given directly') : "Open classic permissions page to manage admins"} // change tooltip if admins or Access given directly
                 >
                   <Icon 
                     className={cssStyles.cardAndUsersIcon} 

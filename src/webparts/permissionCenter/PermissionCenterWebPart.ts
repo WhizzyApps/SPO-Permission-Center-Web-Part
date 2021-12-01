@@ -1,8 +1,9 @@
 import * as React from 'react';
 import * as ReactDom from 'react-dom';
 import { SPHttpClient, ISPHttpClientOptions } from '@microsoft/sp-http';
-import { IPropertyPaneConfiguration, PropertyPaneDropdown, PropertyPaneToggle, PropertyPaneLabel, PropertyPaneLink } from '@microsoft/sp-property-pane';
+import { IPropertyPaneConfiguration, PropertyPaneDropdown, PropertyPaneToggle, PropertyPaneLabel, PropertyPaneLink, PropertyPaneButton, PropertyPaneButtonType, PropertyPaneTextField } from '@microsoft/sp-property-pane';
 import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
+import { IPropertyPaneField, IPropertyPaneCustomFieldProps, PropertyPaneFieldType } from '@microsoft/sp-property-pane';
 
 import PermissionCenter from './components/PermissionCenter';
 import { IPermissionCenterProps } from './components/IPermissionCenterProps';
@@ -12,8 +13,8 @@ const timeStampFile = require("../../../config/timeStamp.json");
 const buildTimeStamp = timeStampFile["buildTimeStamp"];
 
 export interface IPermissionCenterWebPartProps {
-  auto: boolean;
-  role: string;
+  configBasedOnPermissions: boolean;
+  selectedRoleForConfig: string;
 
   manualShowMenu: boolean;
   manualShowTabUsers: boolean;
@@ -73,14 +74,21 @@ export interface IPermissionCenterWebPartProps {
   throwErrors: boolean;
   logPermCenterVars: boolean;
   logComponentVars: boolean;
-  animateHeightUserCard: boolean;
+  disableAnimateHeightUserCard: boolean;
+  preloadAzureGroups: boolean;
+  preloadAzureGroupsAmount: boolean;
+  exportOrImportApiResponse: boolean;
+  exportOrImportDropdown: string;
+  importApiResponse: boolean;
+  importApiResponseData;
+
 }
 
 export default class PermissionCenterWebPart extends BaseClientSideWebPart <IPermissionCenterWebPartProps> {
   
   private allowEditProps = false;
   
-  // get data from SharePoint REST Api
+  // get data from SharePoint REST API
   private async _spApiGet (url: string): Promise<object> {
 
     const clientOptions: ISPHttpClientOptions = {
@@ -107,13 +115,13 @@ export default class PermissionCenterWebPart extends BaseClientSideWebPart <IPer
 
   // get permissions of current user
   private async _getUserPermissions () {
-    let role;
+    let currentUserRole;
     // get permission of current users
     const urlAdmin = this.context.pageContext.web.absoluteUrl + '/_api/web/currentuser/isSiteAdmin';
     const isSiteAdminResponse = await this._spApiGet(urlAdmin);
     const isSiteAdmin = isSiteAdminResponse['value'];
     if (isSiteAdmin == true) {
-      role = "admin";
+      currentUserRole = "admin";
     } 
     else {
       const urlPerm = this.context.pageContext.web.absoluteUrl + `/_api/web/effectiveBasePermissions`;
@@ -122,19 +130,19 @@ export default class PermissionCenterWebPart extends BaseClientSideWebPart <IPer
       if (permResponse["Low"]) {
         permArray = this._convertUserPermissions (permResponse['Low'], permResponse['High']);
         if (permArray.includes("ManagePermissions")) {
-          role = "owner";
+          currentUserRole = "owner";
         } else if (permArray.includes("EditListItems")) {
-          role = "member";
+          currentUserRole = "member";
         } else {
-          role = "visitor";
+          currentUserRole = "visitor";
         }
       }
       else {
-        role = "visitor";
+        currentUserRole = "visitor";
       }
 
     }
-    return role;
+    return currentUserRole;
   }
 
   // convert permissions of current user
@@ -234,26 +242,30 @@ export default class PermissionCenterWebPart extends BaseClientSideWebPart <IPer
     return perm;
   }
   
-  private mode;
+  private exportApiResponse = false;
+  private importApiResponse = false;
+  private currentUserRole;
+  private _reRenderAndRecordAndDownloadApiResponse = () => {};
+  private _rerenderWithImportedApiResponse = () => {};
+  
 
   public async render() {
 
     try {
 
-      if (!this.mode) {
-        this.mode = await this._getUserPermissions();
+      if (!this.currentUserRole) {
+        this.currentUserRole = await this._getUserPermissions();
       }
       
-      if ((this.mode == "admin") || (this.mode == "owner") ) {
+      if ((this.currentUserRole == "admin") || (this.currentUserRole == "owner") ) {
         this.allowEditProps = true;
       }
-        
 
       const featureConfig = () => {
-        if (this.properties.auto) {
-          if (this.mode == 'visitor') {
+        if (this.properties.configBasedOnPermissions) {
+          if (this.currentUserRole == 'visitor') {
             return {
-              auto: this.properties.auto,
+              configBasedOnPermissions: this.properties.configBasedOnPermissions,
               showMenu: this.properties.visitorShowMenu,
               showTabUsers: this.properties.visitorShowTabUsers,
               showTabHidden: this.properties.visitorShowTabHidden,
@@ -266,9 +278,9 @@ export default class PermissionCenterWebPart extends BaseClientSideWebPart <IPer
               showMembers: this.properties.visitorShowMembers,
               showDirectAccess: this.properties.visitorShowDirectAccess
             };
-          } else if (this.mode == 'member') {
+          } else if (this.currentUserRole == 'member') {
             return {
-              auto: this.properties.auto,
+              configBasedOnPermissions: this.properties.configBasedOnPermissions,
               showMenu: this.properties.memberShowMenu,
               showTabUsers: this.properties.memberShowTabUsers,
               showTabHidden: this.properties.memberShowTabHidden,
@@ -281,9 +293,9 @@ export default class PermissionCenterWebPart extends BaseClientSideWebPart <IPer
               showMembers: this.properties.memberShowMembers,
               showDirectAccess: this.properties.memberShowDirectAccess
             };
-          } else if (this.mode == 'owner') {
+          } else if (this.currentUserRole == 'owner') {
             return {
-              auto: this.properties.auto,
+              configBasedOnPermissions: this.properties.configBasedOnPermissions,
               showMenu: this.properties.ownerShowMenu,
               showTabUsers: this.properties.ownerShowTabUsers,
               showTabHidden: this.properties.ownerShowTabHidden,
@@ -297,10 +309,10 @@ export default class PermissionCenterWebPart extends BaseClientSideWebPart <IPer
               showDirectAccess: this.properties.ownerShowDirectAccess
             };
           } 
-          // admin mode
+          // currentUserRole = admin 
           else {
             return {
-              auto: this.properties.auto,
+              configBasedOnPermissions: this.properties.configBasedOnPermissions,
               showMenu: true,
               showTabUsers: true,
               showTabHidden: true,
@@ -316,10 +328,10 @@ export default class PermissionCenterWebPart extends BaseClientSideWebPart <IPer
             };
           }
         } 
-        // manual mode
+        // configBasedOnPermissions off
         else {
           return {
-            auto: this.properties.auto,
+            configBasedOnPermissions: this.properties.configBasedOnPermissions,
             showMenu: this.properties.manualShowMenu,
             showTabUsers: this.properties.manualShowTabUsers,
             showTabHidden: this.properties.manualShowTabHidden,
@@ -340,7 +352,14 @@ export default class PermissionCenterWebPart extends BaseClientSideWebPart <IPer
         "throwErrors": false,
         "logComponentVars": false,
         "logPermCenterVars": false,
-        "animateHeightUserCard": this.properties.animateHeightUserCard,
+        "disableAnimateHeightUserCard": this.properties.disableAnimateHeightUserCard,
+        "preloadAzureGroups": true,
+        "preloadAzureGroupsAmount": false,
+        "exportOrImportApiResponse": false,
+        "exportApiResponse": false,
+        "importApiResponse": false,
+        "importApiResponseData": null
+        
       };
       if (this.properties.debugMode) {
         debugConfig = {
@@ -349,15 +368,44 @@ export default class PermissionCenterWebPart extends BaseClientSideWebPart <IPer
           "throwErrors": this.properties.throwErrors,
           "logComponentVars": this.properties.logComponentVars,
           "logPermCenterVars": this.properties.logPermCenterVars,
-          "animateHeightUserCard": this.properties.animateHeightUserCard,
+          "disableAnimateHeightUserCard": this.properties.disableAnimateHeightUserCard,
+          "preloadAzureGroups": this.properties.preloadAzureGroups,
+          "preloadAzureGroupsAmount": this.properties.preloadAzureGroupsAmount,
+          "exportOrImportApiResponse": this.properties.exportOrImportApiResponse,
+          "exportApiResponse": this.exportApiResponse,
+          "importApiResponse": this.importApiResponse,
+          "importApiResponseData": this.properties.importApiResponseData
         };
       }
 
       const config =  {...featureConfig(), ...debugConfig };
       
-
       const _reRender = () => {
         element.props.userAndFoto = {};
+        ReactDom.unmountComponentAtNode(this.domElement);
+        this.exportApiResponse = false;
+        element.props.config.exportApiResponse = false;
+        this.importApiResponse = false;
+        element.props.config.importApiResponse = false;
+        ReactDom.render(element, this.domElement);
+      };
+
+      this._reRenderAndRecordAndDownloadApiResponse = () => {
+        element.props.userAndFoto = {};
+        this.exportApiResponse = true;
+        element.props.config.exportApiResponse = true;
+        this.importApiResponse = false;
+        element.props.config.importApiResponse = false;
+        ReactDom.unmountComponentAtNode(this.domElement);
+        ReactDom.render(element, this.domElement);
+      };
+      
+      this._rerenderWithImportedApiResponse = () => {
+        element.props.userAndFoto = {};
+        this.exportApiResponse = false;
+        element.props.config.exportApiResponse = false;
+        this.importApiResponse = true;
+        element.props.config.importApiResponse = true;
         ReactDom.unmountComponentAtNode(this.domElement);
         ReactDom.render(element, this.domElement);
       };
@@ -370,13 +418,13 @@ export default class PermissionCenterWebPart extends BaseClientSideWebPart <IPer
           spHttpClient: this.context.spHttpClient,
           context: this.context,
           reload: _reRender.bind(this),
-          mode: this.mode,
+          currentUserRole: this.currentUserRole,
           userAndFoto: {}
         }
       );
 
-
       if (element.props.config.logPermCenterVars) {console.log("config: ", element.props.config);}
+
       ReactDom.render(element, this.domElement);
     }
     catch (error) {console.log(error);}
@@ -397,12 +445,10 @@ export default class PermissionCenterWebPart extends BaseClientSideWebPart <IPer
     let configName = null;
     let debugMode = [];
     let debugFlags = [];
-
-    // set default role for dropDown menu
-    if (!this.properties.role) {
-      this.properties.role = "member";
-    }
-
+    let recordFlags = [];
+    let optimizationFlags = [];
+    let recordOrImportFlag = [];
+    
     // define description for web part in property pane with version, buildTimeStamp and link for doc website
     const descriptionPage1 = [
       PropertyPaneLabel('version', {  
@@ -418,6 +464,18 @@ export default class PermissionCenterWebPart extends BaseClientSideWebPart <IPer
       })
     ];
 
+    //export api response
+    const exportApiResponse = () => {
+      this._reRenderAndRecordAndDownloadApiResponse();
+      return null;
+    };
+
+    //import api response
+    const importApiResponse = () => {
+      this._rerenderWithImportedApiResponse();
+      return null;
+    };
+
     // if current user is allowed to edit web part
     if (this.allowEditProps) {
       
@@ -426,21 +484,26 @@ export default class PermissionCenterWebPart extends BaseClientSideWebPart <IPer
     
       autoConfigName = null;
       autoConfig = [ 
-        PropertyPaneToggle('auto', {
+        PropertyPaneToggle('configBasedOnPermissions', {
           label: 'Configuration based on permissions',
           onText: "On",
           offText: "Off"
         }),
-        PropertyPaneLabel('currentUserRole', {  
-          text:'You are Site ' + this.mode + '.'
+        PropertyPaneLabel('currentUserRoleLable', {  
+          text:'You are Site ' + this.currentUserRole + '.'
         })
       ];
 
-      // auto mode
-      if (this.properties.auto) {
+      // set default role for dropDown menu
+      if (!this.properties.selectedRoleForConfig) {
+        this.properties.selectedRoleForConfig = "member";
+      }
+      
+      // configBasedOnPermissions
+      if (this.properties.configBasedOnPermissions) {
         
         roleConfig = [
-          PropertyPaneDropdown('role', {
+          PropertyPaneDropdown('selectedRoleForConfig', {
             label: 'Configure web part for',
             options: [
               { key: 'owner', text: 'Site owners' },
@@ -450,8 +513,8 @@ export default class PermissionCenterWebPart extends BaseClientSideWebPart <IPer
           })
         ];
 
-        // auto owner
-        if (this.properties.role == "owner") {
+        // configBasedOnPermissions owner
+        if (this.properties.selectedRoleForConfig == "owner") {
           
           config = [
             PropertyPaneToggle('ownerShowMenu', {
@@ -511,8 +574,8 @@ export default class PermissionCenterWebPart extends BaseClientSideWebPart <IPer
             })
           ];
         } 
-        // auto member
-        else if (this.properties.role == "member") {
+        // configBasedOnPermissions member
+        else if (this.properties.selectedRoleForConfig == "member") {
 
           config = [
             PropertyPaneToggle('memberShowMenu', {
@@ -572,8 +635,8 @@ export default class PermissionCenterWebPart extends BaseClientSideWebPart <IPer
             })
           ];
         } 
-        // auto visitor
-        else if (this.properties.role == "visitor") {
+        // configBasedOnPermissions visitor
+        else if (this.properties.selectedRoleForConfig == "visitor") {
 
           config = [
             PropertyPaneToggle('visitorShowMenu', {
@@ -635,7 +698,7 @@ export default class PermissionCenterWebPart extends BaseClientSideWebPart <IPer
         }
       }
 
-      // manual mode
+      // configBasedOnPermissions off
       else {
         
         config = [
@@ -707,9 +770,30 @@ export default class PermissionCenterWebPart extends BaseClientSideWebPart <IPer
         })
       ];
 
-      // debug mode
+      // set default for export/import dropDown menu
+      if (!this.properties.exportOrImportDropdown) {
+        this.properties.exportOrImportDropdown = "export";
+      }
+
+
+      // debugmode
       if (this.properties.debugMode) {
-        
+          
+        // performanceOptimization preparation
+        let preloadAzureGroupsAmount: any;
+        if (this.properties.preloadAzureGroups) {
+          preloadAzureGroupsAmount = PropertyPaneToggle('preloadAzureGroupsAmount', {
+            label: 'Preload Azure groups amount 100/1000',
+            onText: "1000",
+            offText: "100"
+          });
+        }
+        else {
+          preloadAzureGroupsAmount = PropertyPaneLabel('emptyLabel', {
+            text: ""
+          });
+        }
+        // --------
         debugFlags = [
           PropertyPaneToggle('logState', {
             label: 'Log state to console',
@@ -736,12 +820,59 @@ export default class PermissionCenterWebPart extends BaseClientSideWebPart <IPer
             onText: "On",
             offText: "Off"
           }),
-          PropertyPaneToggle('animateHeightUserCard', {
-            label: 'Use animate height for user card',
+          PropertyPaneToggle('disableAnimateHeightUserCard', {
+            label: 'Disable animate height for user card',
             onText: "On",
             offText: "Off"
-          })
+          }),
+          PropertyPaneToggle('preloadAzureGroups', {
+            label: 'Preload Azure groups',
+            onText: "On",
+            offText: "Off"
+          }),
+          preloadAzureGroupsAmount,
+          PropertyPaneToggle('exportOrImportApiResponse', {
+            label: 'Export or import API response',
+            onText: "On",
+            offText: "Off"
+          }),
         ];
+
+        if (this.properties.exportOrImportApiResponse) {
+          recordFlags = [
+            PropertyPaneDropdown('exportOrImportDropdown', {
+              label:'',
+              options: [
+                { key: 'export', text: 'Export' },
+                { key: 'import', text: 'Import' }
+              ],
+            })
+          ];
+          if (this.properties.exportOrImportDropdown == "export") {
+            recordOrImportFlag = [
+              PropertyPaneButton('exportApiResponseButton', {
+                text: "Record and Download",
+                buttonType: PropertyPaneButtonType.Normal,
+                onClick: exportApiResponse
+              })
+            ];
+          }
+          else if (this.properties.exportOrImportDropdown == "import") {
+            recordOrImportFlag = [
+              PropertyPaneTextField('importApiResponseData', {
+                label: 'Paste content of apiResponse.json',
+                multiline: true,
+                resizable: true,
+              }),
+              PropertyPaneButton('importApiResponseButton', {
+                text: "Reload with imported API response",
+                buttonType: PropertyPaneButtonType.Normal,
+                onClick: importApiResponse
+              })
+              
+            ];
+          }
+        }
       }
     }
     
@@ -783,6 +914,14 @@ export default class PermissionCenterWebPart extends BaseClientSideWebPart <IPer
             {
               groupName: '',
               groupFields: debugFlags
+            },
+            {
+              groupName: '',
+              groupFields: recordFlags
+            },
+            {
+              groupName: '',
+              groupFields: recordOrImportFlag
             }
           ]
         }

@@ -97,6 +97,7 @@
   
     .userRow {
       padding-left: 0;
+      word-break: break-word;
             
       //user name
       .user {
@@ -106,6 +107,7 @@
         word-wrap: break-word;
         border-bottom: 'initial';
         cursor: pointer;
+        line-height: 1.2;
         span {
           font-weight: 300;
         } 
@@ -128,6 +130,7 @@
         border-bottom: 'initial';
         cursor: pointer;
         background-color: "[theme: neutralLight, default: #eaeaea]";
+        line-height: 1.2;
         span {
           font-weight: 300;
         }
@@ -148,6 +151,7 @@
         display: inline-block;
         word-wrap: break-word;
         border-bottom: 'initial';
+        line-height: 1.2;
         span {
           font-weight: 300;
         }
@@ -503,6 +507,7 @@
 
     .user {
       border:0.0625rem solid ;
+      word-break: break-word;
     }
     .user:hover {
       background-color: "[theme: neutralLight, default: #eaeaea]";
@@ -513,6 +518,7 @@
     }
     .userInvalid {
       border:0.0625rem solid ;
+      word-break: break-word;
     }
 
     .branchContainer {

@@ -60,7 +60,6 @@
       "esnext.asynciterable", 
       "esnext.intl", 
       "esnext.bigint",
-
     ]
   },
   "include": [

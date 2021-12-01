@@ -6,7 +6,7 @@ export interface IPermissionCenterProps {
   
   siteCollectionURL?: string;
   config?: {
-    auto: boolean,
+    configBasedOnPermissions: boolean,
     showMenu: boolean,
     showTabUsers: boolean,
     showTabHidden: boolean,
@@ -22,12 +22,19 @@ export interface IPermissionCenterProps {
     logErrors: boolean,
     throwErrors: boolean,
     logPermCenterVars: boolean,
-    logComponentVars: boolean
+    logComponentVars: boolean,
+    disableAnimateHeightUserCard: boolean,
+    preloadAzureGroups: boolean,
+    preloadAzureGroupsAmount: boolean,
+    exportOrImportApiResponse: boolean,
+    exportApiResponse: boolean,
+    importApiResponse: boolean,
+    importApiResponseData
     
   };
   spHttpClient?: SPHttpClient;
   context?: WebPartContext;
   reload?;
-  mode?;
+  currentUserRole?;
   userAndFoto?;
 }

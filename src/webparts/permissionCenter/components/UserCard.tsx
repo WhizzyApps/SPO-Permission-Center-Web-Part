@@ -115,7 +115,12 @@ const UserCard: React.FC<Props> = (({state, props, userEntry}) => {
         const responseJson = await response.json();
         if (props.config.logComponentVars) {console.log("Response for user foto url: ", response, responseJson);}
         // if user is external, he has no property PictureUrl. to tell the code that we executed _getFotoUrl for this user, set PictureUrl = null
-        if (responseJson.PictureUrl == undefined) {responseJson.PictureUrl = null;}
+        // I tried to get photo via ms graph, but no-access-error, even with correct graph permissions user.read and user.read.all
+        if (responseJson.PictureUrl == undefined ) {responseJson.PictureUrl = null; }
+        // debug for error that sometimes user photo not loading
+        if ((props.config.logErrors) && (response.status == 302)) {
+          console.log("_getFotoUrl status=302. Request-url: ", url, "response: ", response, "responseJson: ", responseJson);
+        }
         return responseJson.PictureUrl;
       } catch (error) {
         if (props.config.logErrors) {console.log(error);}
@@ -131,7 +136,7 @@ const UserCard: React.FC<Props> = (({state, props, userEntry}) => {
         setUserFotoUrl (props.userAndFoto[userEntry]);
       // if there is no url in props.userAndFoto
       } else {
-        // if props.userAndFoto would be null, we would have tried to get the url once since loading of web part, because if there is no picture for this user, the response is null
+        // if props.userAndFoto is null, we would have tried to get the url once since loading of web part, because if there is no picture for this user, the response is null
         if (props.userAndFoto[userEntry]!==null) {
           if (props.config.logComponentVars) {console.log("props.userAndFoto[userEntry] empty. ");}
           _getFotoUrl().then(
@@ -273,9 +278,9 @@ const UserCard: React.FC<Props> = (({state, props, userEntry}) => {
           </div>
         : // for user 
           <div 
-            className={ `${cssStyles.nestedGroup} ${props.config.showCardUserLinks ? cssStyles.user : cssStyles.userInvalid }` } 
-            onClick={(event)=> props.config.showCardUserLinks && _openUserInAzure(event)}
-            title = {props.config.showCardUserLinks && 'Show user in Azure Portal'}
+            className={ `${cssStyles.nestedGroup} ${(state.users[userEntry].isUser && props.config.showCardUserLinks) ? cssStyles.user : cssStyles.userInvalid }` } 
+            onClick={(event)=> props.config.showCardUserLinks && state.users[userEntry].isUser && _openUserInAzure(event)}
+            title = {props.config.showCardUserLinks && state.users[userEntry].isUser && 'Show user in Azure Portal' }
             >
             {state.users[userEntry].name}
         </div>
@@ -376,7 +381,7 @@ const UserCard: React.FC<Props> = (({state, props, userEntry}) => {
         }
       });
     };
-      
+
     const _getUserMembership = () => {
       state.users[userEntry].groupNesting.children.forEach(
         spGroupItem => _getGroupChildren(spGroupItem) // get last group of group nesting branch in user to delete user from it
@@ -389,7 +394,7 @@ const UserCard: React.FC<Props> = (({state, props, userEntry}) => {
 
       setUserMembershipArrayState(userMembershipArray);
     };
-    
+
     const _openDialog_changeGroupMembership = (event) => {
       // reset arrays
       removeUserGroupsArray = [];
@@ -401,56 +406,46 @@ const UserCard: React.FC<Props> = (({state, props, userEntry}) => {
         showModal();
       }
     };
-    
+
     const _addOrRemoveAdmin = async (userLoginName, userId, isRemove) => {
-      
-      // if no userId, get sp Id
-      if (!userId) {
-        // first, try to get sp user id from sp api. if user has a profile in sp, reponse will be successful
-        const response = await _spApiGet (`${props.siteCollectionURL}/_api/web/siteusers(@v)?@v='${encodeURIComponent(userLoginName)}'&$select=Id`);
-        // if response has id, add Id to state.users
-        if (response["Id"]) {
-          userId = response["Id"];
-          state.users[userEntry].spId = userId;
-        }
-        // if user has no user profile in sp, response will be an error. so call "ensureuser" to create his sp user profile.
-        else {
-          // for add admin: if not in site collection, add user to site collection
-          if (!isRemove) {
 
-            // parameter
-            let ensureAdminUrl = props.siteCollectionURL + `/_api/web/ensureuser`;
-            const ensureAdminOpts = {
-              headers: {
-                'Accept': 'application/json;odata=nometadata',
-                'Content-type': 'application/json;odata=verbose',
-                'odata-version': '',
-              },
-              body: JSON.stringify({
-                'logonName': userLoginName
-              }),
-              mode: 'cors'
-            };
+      // to add or remove user from admins, sp Id needed
+      // for remove admin, sp Id in state object
+      // for add admin, if no userId, get sp Id
+      if (!userId && !isRemove) {
+        // for add admin also: if not in site collection, add user to site collection via ensureuser and get sp Id
 
-            // http request
-            try {
-              // call ensureuser
-              await props.spHttpClient.post(ensureAdminUrl, SPHttpClient.configurations.v1, ensureAdminOpts);
-              // get his user id
-              const responseGetUserId = await _spApiGet (`${props.siteCollectionURL}/_api/web/siteusers(@v)?@v='${encodeURIComponent(userLoginName)}'&$select=Id`);
-              // if response has id, add Id to state.users
-              userId = responseGetUserId["Id"];
-              if (userId) {
-                state.users[userEntry].spId = userId;
-              }
-            } 
-            catch (error) {
-              if (props.config.logErrors) {console.log(error);}
-              if (props.config.throwErrors) {throw error;}
-              error['value'] = [];
-              error['status'] = "error";
-            }
+        // parameter
+        let ensureAdminUrl = props.siteCollectionURL + `/_api/web/ensureuser`;
+        const ensureAdminOpts = {
+          headers: {
+            'Accept': 'application/json;odata=nometadata',
+            'Content-type': 'application/json;odata=verbose',
+            'odata-version': '',
+          },
+          body: JSON.stringify({
+            'logonName': userLoginName
+          }),
+          mode: 'cors'
+        };
+
+        // http request
+        try {
+          // call ensureuser
+          await props.spHttpClient.post(ensureAdminUrl, SPHttpClient.configurations.v1, ensureAdminOpts);
+          // get his user id
+          const responseGetUserId = await _spApiGet (`${props.siteCollectionURL}/_api/web/siteusers(@v)?@v='${encodeURIComponent(userLoginName)}'&$select=Id`);
+          // if response has id, add Id to state.users
+          userId = responseGetUserId["Id"];
+          if (userId) {
+            state.users[userEntry].spId = userId;
           }
+        } 
+        catch (error) {
+          if (props.config.logErrors) {console.log(error);}
+          if (props.config.throwErrors) {throw error;}
+          error['value'] = [];
+          error['status'] = "error";
         }
       }
       
@@ -796,7 +791,7 @@ const UserCard: React.FC<Props> = (({state, props, userEntry}) => {
       }
     };
 
-    // remove user from sharepoint
+    // remove user from site
     const _deleteUserFromSite = async () => {
       // hide dialog
       toggleHideDialog_deleteUserFromSite();
@@ -886,7 +881,7 @@ const UserCard: React.FC<Props> = (({state, props, userEntry}) => {
     
     //------------------------------- return ---------------------------------
     return (
-      <div className={ cssStyles.userCard }>
+      <div className={ cssStyles.userCard } onClick={event=>event.stopPropagation()}>
         
         {/* userCardContainer */}
         <div className={ cssStyles.userCardContainer }>
@@ -923,7 +918,7 @@ const UserCard: React.FC<Props> = (({state, props, userEntry}) => {
 
           {/* buttons */}
           
-          <div className={ cssStyles.groupCardButtonContainer }>
+          <div className={ cssStyles.groupCardButtonContainer } >
             {props.config.showCardButtons &&
               <DefaultButton 
                 className={"myClick"} 
@@ -1024,70 +1019,71 @@ const UserCard: React.FC<Props> = (({state, props, userEntry}) => {
                 </div>
                 
                 {/* Azure groups */}
-                <div className={cssStyles.modalColumn}> 
-                  <div className={cssStyles.headline} > 
-                    {state.azureGroupArraySorted[0]
-                      && 'Azure groups: '
-                    }
-                  </div>
-                  <br/>
-                  <div className={cssStyles.modalColumn} >
-                    {state.azureGroupArraySorted.map(
-                      (azureGroupObjectItem)=>
-                      <div style={{display:"flex", marginBottom:'0.625rem'}}>
-                        {/* checkbox */}
-                        <input 
-                          type="checkbox" 
-                          data-groupEntry={azureGroupObjectItem.key} 
-                          checked={userMembershipArrayState.filter(groupEntry=>groupEntry===azureGroupObjectItem.key)[0] ? true : false}
-                          onClick={(e)=>_onChangeCheckbox(e)}
-                          className={cssStyles.modalCheckbox}
-                          disabled={(
-                            azureGroupObjectItem.type.long.startsWith("Dist") 
-                            || azureGroupObjectItem.type.long.startsWith("Mail")
-                            || changeMembershipExecuted
-                            ) ? true : false}
-                        />
-                        {/* group name */}
-                        <div 
-                          style={{ paddingLeft:"0.3125rem"}}
-                          onClick={(
-                            azureGroupObjectItem.type.long.startsWith("Dist") || 
-                            azureGroupObjectItem.type.long.startsWith("Mail")
-                            ) && (()=>window.open(`https://admin.microsoft.com/AdminPortal/Home#/groups/:/GroupDetails/${azureGroupObjectItem.id}/2`))
-                          }
-                          title={ (
-                            azureGroupObjectItem.type.long.startsWith("Dist") || 
-                            azureGroupObjectItem.type.long.startsWith("Mail")
-                            ) && "To manage members, open Microsoft 365 admin center." 
-                          }
-                          className={(
-                            azureGroupObjectItem.type.long.startsWith("Dist") || 
-                            azureGroupObjectItem.type.long.startsWith("Mail")
-                            )
-                            && cssStyles.openLink
-                          }
-                          >
-                          {azureGroupObjectItem.name}
-                        </div>
+                {state.users[userEntry].isUser &&
+                  <div className={cssStyles.modalColumn}> 
+                    <div className={cssStyles.headline} > 
+                      {state.azureGroupArraySorted[0]
+                        && 'Azure groups: '
+                      }
+                    </div>
+                    <br/>
+                    <div className={cssStyles.modalColumn} >
+                      {state.azureGroupArraySorted.map(
+                        (azureGroupObjectItem)=>
+                        <div style={{display:"flex", marginBottom:'0.625rem'}}>
+                          {/* checkbox */}
+                          <input 
+                            type="checkbox" 
+                            data-groupEntry={azureGroupObjectItem.key} 
+                            checked={userMembershipArrayState.filter(groupEntry=>groupEntry===azureGroupObjectItem.key)[0] ? true : false}
+                            onClick={(e)=>_onChangeCheckbox(e)}
+                            className={cssStyles.modalCheckbox}
+                            disabled={(
+                              azureGroupObjectItem.type.long.startsWith("Dist") 
+                              || azureGroupObjectItem.type.long.startsWith("Mail")
+                              || changeMembershipExecuted
+                              ) ? true : false}
+                          />
+                          {/* group name */}
+                          <div 
+                            style={{ paddingLeft:"0.3125rem"}}
+                            onClick={(
+                              azureGroupObjectItem.type.long.startsWith("Dist") || 
+                              azureGroupObjectItem.type.long.startsWith("Mail")
+                              ) && (()=>window.open(`https://admin.microsoft.com/AdminPortal/Home#/groups/:/GroupDetails/${azureGroupObjectItem.id}/2`))
+                            }
+                            title={ (
+                              azureGroupObjectItem.type.long.startsWith("Dist") || 
+                              azureGroupObjectItem.type.long.startsWith("Mail")
+                              ) && "To manage members, open Microsoft 365 admin center." 
+                            }
+                            className={(
+                              azureGroupObjectItem.type.long.startsWith("Dist") || 
+                              azureGroupObjectItem.type.long.startsWith("Mail")
+                              )
+                              && cssStyles.openLink
+                            }
+                            >
+                            {azureGroupObjectItem.name}
+                          </div>
 
-                        {/* Feedback for user if change success or error */}
-                        <div className={cssStyles.iconContainer}>
-                          {
-                          changeGroupMembershipFeedbackState[azureGroupObjectItem.key] 
-                          ? changeGroupMembershipFeedbackState[azureGroupObjectItem.key].status == "success" 
-                            ? <Icon iconName={"CheckMark"} className={`${cssStyles.successIcon}`} title='Change successful' /> 
-                            : changeGroupMembershipFeedbackState[azureGroupObjectItem.key].status == "accessDenied"
-                              ? <Icon iconName={"Cancel"} className={`${cssStyles.errorIcon}`} title="No permission to change membership" /> 
-                              : <Icon iconName={"Help"} className={`${cssStyles.errorIcon}`} title="An error occurred while changing membership."/> 
-                          : null
-                          }
+                          {/* Feedback for user if change success or error */}
+                          <div className={cssStyles.iconContainer}>
+                            {
+                            changeGroupMembershipFeedbackState[azureGroupObjectItem.key] 
+                            ? changeGroupMembershipFeedbackState[azureGroupObjectItem.key].status == "success" 
+                              ? <Icon iconName={"CheckMark"} className={`${cssStyles.successIcon}`} title='Change successful' /> 
+                              : changeGroupMembershipFeedbackState[azureGroupObjectItem.key].status == "accessDenied"
+                                ? <Icon iconName={"Cancel"} className={`${cssStyles.errorIcon}`} title="No permission to change membership" /> 
+                                : <Icon iconName={"Help"} className={`${cssStyles.errorIcon}`} title="An error occurred while changing membership."/> 
+                            : null
+                            }
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
-                </div>
-
+                }
               </div>
 
               <DialogFooter>
@@ -1114,7 +1110,7 @@ const UserCard: React.FC<Props> = (({state, props, userEntry}) => {
               closeButtonAriaLabel: 'Close'
             }}
           >
-            <div>
+            <div style={{wordBreak: "break-word"}}>
               Do you want to delete {state.users[userEntry].name} from all SharePoint groups?
             </div>
             <DialogFooter>

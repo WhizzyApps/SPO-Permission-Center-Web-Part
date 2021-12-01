@@ -69,7 +69,14 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
     selectedTab: 'Groups',
     isGroupsLoading: true,
     hiddenGroupsExist: false,
-    mode: this.props.mode,
+    currentUserRole: this.props.currentUserRole,
+    apiResponse: {
+      PermissionCenter: {
+        spApi: [],
+        graphApi: []
+      }
+    },
+    downloadComponent: null
   };
 
   // set state of class
@@ -83,92 +90,232 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
   private sitePermissionLevels;
   private allPermResponse;
   private hiddenGroupsExist = false;
-  
+  private apiResponse = this.state.apiResponse;
+  private fileDownloadElement;
+  private importApiResponseData;
+  private parseImportApiResponseData = () => {
+    this.importApiResponseData = JSON.parse(this.props.config.importApiResponseData);
+  }
+
   // -------------- basic api calls -------------
 
-  // get data from SharePoint REST Api
+  // get data from SharePoint REST API
   private async _spApiGet (url: string): Promise<object> {
-    const clientOptions: ISPHttpClientOptions = {
-      headers: new Headers(),
-      method: 'GET',
-      mode: 'cors'
-    };
-    try {
-      const response = await this.props.spHttpClient.get(url, SPHttpClient.configurations.v1, clientOptions);
-      const responseJson = await response.json();
-      responseJson['status'] = response.status;
-      if (!responseJson.value) {
-        responseJson['value'] = [];
+
+    if (!this.props.config.importApiResponse) {
+      
+      const clientOptions: ISPHttpClientOptions = {
+        headers: new Headers(),
+        method: 'GET',
+        mode: 'cors'
+      };
+      try {
+        const response = await this.props.spHttpClient.get(this.props.siteCollectionURL + url, SPHttpClient.configurations.v1, clientOptions);
+        const responseJson = await response.json();
+        responseJson['status'] = response.status;
+        if (!responseJson.value) {
+          responseJson['value'] = [];
+        }
+        // if exportOrImportApiResponse, store response in object for state
+        if (this.props.config.exportOrImportApiResponse) {
+          this.apiResponse.PermissionCenter.spApi.push({
+            url: url,
+            response: responseJson
+          });
+        }
+        if (this.props.config.logPermCenterVars) {console.log("_spApiGet get called. Url: ", url, "responseJson: ", responseJson);}
+        return responseJson;
+      } 
+      catch (error) {
+        if (this.props.config.logErrors) {console.log(error);}
+        if (this.props.config.throwErrors) {throw error;}
+        error['value'] = [];
+        error['status'] = "error";
+        return error;
       }
-      return responseJson;
-    } 
-    catch (error) {
-      if (this.props.config.logErrors) {console.log(error);}
-      if (this.props.config.throwErrors) {throw error;}
-      error['value'] = [];
-      error['status'] = "error";
-      return error;
+    }
+    else if (this.importApiResponseData) {
+      let noMatch = true;
+      let responseMatch;
+      this.importApiResponseData["PermissionCenter"].spApi.forEach(
+        responseItem => {
+          if (responseItem.url == url) {
+            noMatch = false;
+            responseMatch = responseItem.response;
+          }
+        }
+      );
+      if (this.props.config.logPermCenterVars) {
+        if (noMatch) {console.log("No response for url found: ", url);}
+        else console.log("responseMatch for url ", url, responseMatch);
+      }
+      return responseMatch;
+    }
+    else {
+      console.log("_spApiGet: no importApiResponseData?");
+      console.log("_spApiGet: this.props.config.importApiResponse", this.props.config.importApiResponse);
+      console.log("_spApiGet: this.importApiResponseData", this.importApiResponseData); 
     }
   } 
 
-  // post data to SharePoint REST Api
+  // post data to SharePoint REST API
   private async _spApiPost (url: string): Promise<object> {
-    const requestHeaders: Headers = new Headers();  
-    requestHeaders.append('Content-type', 'application/json'); 
-    requestHeaders.append('Accept', 'application/json'); 
-    requestHeaders.append('Authorization', 'Bearer'); 
-    
-    const clientOptions: ISPHttpClientOptions = {
-      headers: requestHeaders,
-      method: 'POST',
-      mode: 'cors',
-    };
-    try {
-      const response = await this.props.spHttpClient.post(url, SPHttpClient.configurations.v1, clientOptions);
-      const responseJson = await response.json();
-      responseJson['status'] = response.status;
-      if (!responseJson.value) {
-        responseJson['value'] = [];
+    if (!this.props.config.importApiResponse) {
+
+      const requestHeaders: Headers = new Headers();  
+      requestHeaders.append('Content-type', 'application/json'); 
+      requestHeaders.append('Accept', 'application/json'); 
+      requestHeaders.append('Authorization', 'Bearer'); 
+      
+      const clientOptions: ISPHttpClientOptions = {
+        headers: requestHeaders,
+        method: 'POST',
+        mode: 'cors',
+      };
+      try {
+        const response = await this.props.spHttpClient.post(this.props.siteCollectionURL + url, SPHttpClient.configurations.v1, clientOptions);
+        const responseJson = await response.json();
+        responseJson['status'] = response.status;
+        if (!responseJson.value) {
+          responseJson['value'] = [];
+        }
+        // if exportOrImportApiResponse, store response in object for state
+        if (this.props.config.exportOrImportApiResponse) {
+          this.apiResponse.PermissionCenter.spApi.push({
+            url: url,
+            response: responseJson
+          });
+        }
+        return responseJson;
+      } 
+      catch (error) {
+        if (this.props.config.logErrors) {console.log(error);}
+        if (this.props.config.throwErrors) {throw error;}
+        error['value'] = [];
+        error['status'] = "error";
+        return error;
       }
-      return responseJson;
-    } 
-    catch (error) {
-      if (this.props.config.logErrors) {console.log(error);}
-      if (this.props.config.throwErrors) {throw error;}
-      error['value'] = [];
-      error['status'] = "error";
-      return error;
+    }
+    
+    else if (this.importApiResponseData) {
+      let noMatch = true;
+      let responseMatch;
+      this.importApiResponseData["PermissionCenter"].spApi.forEach(
+        responseItem => {
+          if (responseItem.url == url) {
+            noMatch = false;
+            responseMatch = responseItem.response;
+          }
+        }
+      );
+      if (this.props.config.logErrors && noMatch) { 
+        console.log("_spApiPost: No response for url found: ", url);
+      }
+      if (this.props.config.logPermCenterVars && !noMatch) { 
+        console.log("responseMatch for url ", url, responseMatch);
+      }
+      return responseMatch;
+    }
+    else {
+      console.log("_spApiPost: no importApiResponseData?");
+      console.log("_spApiPost: this.props.config.importApiResponse", this.props.config.importApiResponse);
+      console.log("_spApiPost: this.importApiResponseData", this.importApiResponseData); 
     }
   } 
   
-  // get data from Microsoft Graph Api
+  // get data from Microsoft Graph API
   private _graphApiGet (url: string): Promise<any> {
-    return new Promise<any> (
-      (resolve, reject) => {
-        this.props.context.msGraphClientFactory.getClient()
-        .then(
-          (client: MSGraphClient): any => {
-            client.api(url).get(
-              async (error, response: any) => {
-                if (response) {
-                  resolve(response);
-                } else if (error) {
-                  resolve(error);
+
+    if (!this.props.config.importApiResponse) {
+      return new Promise<any> (
+        (resolve, reject) => {
+          this.props.context.msGraphClientFactory.getClient()
+          .then(
+            (client: MSGraphClient): any => {
+              client.api(url).get(
+                async (error, response: any) => {
+                  if (response) {
+                    // if exportOrImportApiResponse, store response in state
+                    if (this.props.config.exportOrImportApiResponse) {
+
+                      let urlCut; //because of added timestamp for IE11, get url without timestamp
+                      if (url.includes("&$c=")) {urlCut = url.split("&$c=")[0];}
+                      else if (url.includes("?$c=")) {urlCut = url.split("?$c=")[0];}
+                      else {urlCut = url;}
+
+                      this.apiResponse.PermissionCenter.graphApi.push({
+                        url: urlCut,
+                        response: response
+                      });
+                    }
+                    resolve(response);
+                  } 
+                  else if (error) {
+                    // if exportOrImportApiResponse, store response in state
+                    if (this.props.config.exportOrImportApiResponse) {
+
+                      let urlCut; //because of added timestamp for IE11, get url without timestamp
+                      if (url.includes("&$c=")) {urlCut = url.split("&$c=")[0];}
+                      else if (url.includes("?$c=")) {urlCut = url.split("?$c=")[0];}
+                      else {urlCut = url;}
+
+                      this.apiResponse.PermissionCenter.graphApi.push({
+                        url: urlCut,
+                        response: error
+                      });
+                    }
+                    resolve(error);
+                  }
                 }
-              }
-            );
+              );
+            }
+          )
+          // catch error for getClient
+          .catch(
+            (error) => {
+              if (this.props.config.logErrors) {console.log(url, error);}
+              resolve(error);
+            }
+          );
+        }
+      );
+    }
+    else if (this.importApiResponseData) {
+      let noMatch = true;
+      let responseMatch;
+
+      let urlCut; //because of added timestamp for IE11, get url without timestamp
+      if (url.includes("&$c=")) {urlCut = url.split("&$c=")[0];}
+      else if (url.includes("?$c=")) {urlCut = url.split("?$c=")[0];}
+      else {urlCut = url;}
+
+      this.importApiResponseData["PermissionCenter"].graphApi.forEach(
+        responseItem => {
+          if (responseItem.url == urlCut) {
+            noMatch = false;
+            responseMatch = responseItem.response;
           }
-        )
-        // catch error for getClient
-        .catch(
-          (error) => {
-            if (this.props.config.logErrors) {console.log(url, error);}
-            resolve(error);
-          }
-        );
+        }
+      );
+      if (noMatch) {
+        if (this.props.config.logErrors) {
+          console.log("No response for url found: ", urlCut); 
+          console.log("this.importApiResponseData.PermissionCenter.graphApi ", this.importApiResponseData["PermissionCenter"].graphApi); 
+
+        }
       }
-    );
-  }  
+      else {
+        if (this.props.config.logPermCenterVars) {console.log("responseMatch for url ", urlCut, responseMatch); }
+      }
+      
+      return responseMatch;
+    }
+    else {
+      console.log("_graphApiGet: no importApiResponseData?");
+      console.log("_graphApiGet: this.props.config.importApiResponse", this.props.config.importApiResponse);
+      console.log("_graphApiGet: this.importApiResponseData", this.importApiResponseData);
+    }
+  }
 
   // -------------- secondary methods ---------------
 
@@ -224,6 +371,7 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
                 this.users[userEntry]["azureId"] = memberItem.id;
                 this.users[userEntry]["principalName"] = memberItem.userPrincipalName;
                 this.users[userEntry]["loginName"] = "i:0#.f|membership|" + memberItem.userPrincipalName;
+                this.users[userEntry]["isUser"] = true;
                 if (this.spGroups[spGroupEntry].groupName !== "Access given directly") {
                   this.users[userEntry]["permissionLevel"] = this.spGroups[spGroupEntry].permissionLevel;
                 } else {
@@ -276,7 +424,7 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
   // write members of SharePoint group into memory
   private async _buildSpGroupMembers (spGroupEntry: string, spGroupMembersResponse: any): Promise<any> {
     const groupNestingBranch = [spGroupEntry];
-
+    
     if (spGroupMembersResponse == "no access") {
       this.spGroups[spGroupEntry].users = ['no access'];
     } 
@@ -285,22 +433,53 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
         spGroupMembersResponse.map(async (memberItem) => {
           const loginNameSplit = memberItem.LoginName.split("|");
           let firstLevelAzureGroupPermissionLevel = [];
-
+          let isTreatedAsUser = true;
+          let isUser = false;
+          
           // check if loginName includes a guid from an azure group
-          let isAzureGroup = false;
+          // this.state.tenantAzureGroups contains max 100 azure groups
+          let isTenantAzureGroup = false;
           let azureGroup;
-          this.state.tenantAzureGroups.forEach(
-            azureGroupItem => {
-              if (memberItem.LoginName.includes(azureGroupItem.id)) {
-                isAzureGroup = true;
-                azureGroup = azureGroupItem;
+          if (this.state.tenantAzureGroups == null) { this.state.tenantAzureGroups.forEach(
+              azureGroupItem => {
+                if (memberItem.LoginName.includes(azureGroupItem.id)) {
+                  isTenantAzureGroup = true;
+                  isTreatedAsUser = false;
+                  azureGroup = azureGroupItem;
+                }
               }
+            );
+          }
+
+          // if spGroupMember is in this.state.tenantAzureGroups, spGroupMember is an azure group
+          // this.state.tenantAzureGroups might not contain all azure groups. 
+          // A) because it is an azure group out of tenant. 
+          // B) because this._getAllAzureGroups didn't get all tenant azure groups, because there are more than the response item limit.
+          // C) because this._getAllAzureGroups is deactivated in control panel (preload Azure groups = off)
+          // group members, that are not identified by isTenantAzureGroup, are checked later by graph api call for each group properties. So it will get the same result for each case. For large tenants the webpart might load faster, if azure groups are preloaded.
+          
+          if (isTenantAzureGroup) {
+            const azureGroupId = loginNameSplit[2];
+            const parentAzureGroupEntry = "spGroup";
+            // set firstLevelAzureGroupPermissionLevel for Access given directly group having members with individual permission levels
+            if (this.spGroups[spGroupEntry].groupName === "Access given directly") {
+              firstLevelAzureGroupPermissionLevel = memberItem.permissionLevel;
             }
-          );
+            const azureGroupType = this._evalAzureGroupType (azureGroup["groupTypes"][0], azureGroup["mailEnabled"], azureGroup["securityEnabled"]);
 
-          // if spGroupMember = azure group
-          if (isAzureGroup) { 
+            return await this._buildAzureGroupAndGetChildItemsRecursive(memberItem.Title, azureGroupId, spGroupEntry, groupNestingBranch, parentAzureGroupEntry, azureGroupType, firstLevelAzureGroupPermissionLevel);
+          } 
 
+          // if 'i:0#.f' then member is a user
+          else if ((loginNameSplit[0] === 'i:0#.f') ) {
+            isUser = true;
+          }
+          
+          // if title "Company Administrator", is not an azure group. treated as user
+          else if (memberItem.Title === 'Company Administrator') {}
+
+          // if loginName of member starts with c:0t.c or c:0o.c, it may be an azure group or other administrator. Checking by api call for group properties.
+          else if ((loginNameSplit[0] === 'c:0t.c') || (loginNameSplit[0] === 'c:0o.c') ) {
             const azureGroupId = loginNameSplit[2];
             const parentAzureGroupEntry = "spGroup";
             // set firstLevelAzureGroupPermissionLevel for Access given directly group having members with individual permission levels
@@ -308,12 +487,32 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
               firstLevelAzureGroupPermissionLevel = memberItem.permissionLevel;
             }
             
-            const azureGroupType = this._evalAzureGroupType (azureGroup["groupTypes"][0], azureGroup["mailEnabled"], azureGroup["securityEnabled"]);
-
-            return await this._buildAzureGroupAndGetChildItemsRecursive(memberItem.Title, azureGroupId, spGroupEntry, groupNestingBranch, parentAzureGroupEntry, azureGroupType, firstLevelAzureGroupPermissionLevel);
+            // get type properties
+            let url = "/groups/" + azureGroupId + "?$select=groupTypes,mailEnabled,securityEnabled" + "&$c=" + Date.now().toString(); // "&$c=" + Date.now().toString() for IE11 because otherwise it takes the cached request
+            // if M365OwnersGroup
+            if (azureGroupId.length > 36) {
+              const azureGroupIdCut = azureGroupId.substring(0,36); // cut "_o" from end of id of M365OwnersGroup
+              url = "/groups/" + azureGroupIdCut + "?$select=groupTypes,mailEnabled,securityEnabled" + "&$c=" + Date.now().toString(); // "&$c=" + Date.now().toString() for IE11 because otherwise it takes the cached request
+            }
+            const typePropertiesResponse = await this._graphApiGet(url);
+            let azureGroupType;
+            // if no error, member is an azure group
+            if (!typePropertiesResponse.statusCode) {
+              isTreatedAsUser = false;
+              azureGroupType = this._evalAzureGroupType (typePropertiesResponse["groupTypes"][0], typePropertiesResponse["mailEnabled"], typePropertiesResponse["securityEnabled"]);
+              
+              return await this._buildAzureGroupAndGetChildItemsRecursive(memberItem.Title, azureGroupId, spGroupEntry, groupNestingBranch, parentAzureGroupEntry, azureGroupType, firstLevelAzureGroupPermissionLevel);
+            } 
           } 
-          // else spGroupMember is treated as user
-          else {
+
+          // else (isTreatedAsUser = true): all others will be treated as user:
+            // "Everyone except external users" starts with "c:0-.f"
+            // "Company Administrator" filtered above by title
+            // Other administrators starts with "c:0t.c" like azure groups but _graphApiGet is getting 404
+              // no other property can decide whether the member is an azure group or some kind of administrator. So in that case cannot avoid 404 error logged to console.
+          
+          // if spGroupMember is treated as user
+          if (isTreatedAsUser) {
             // filter "System Account"
             if (memberItem.Title !== "System Account") {  
 
@@ -325,6 +524,7 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
               this.users[userEntry]["spId"] = memberItem.Id;
               this.users[userEntry]["principalName"] = loginNameSplit[2];
               this.users[userEntry]["loginName"] = memberItem.LoginName;
+              this.users[userEntry]["isUser"] = isUser;
               if (this.spGroups[spGroupEntry].groupName !== "Access given directly") {
                 // permission level for groups except Access given directly
                 this.users[userEntry]["permissionLevel"] = this.spGroups[spGroupEntry].permissionLevel;
@@ -351,6 +551,7 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
             }
           } 
 
+
         })
       );
     }
@@ -358,7 +559,7 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
 
   // get members of SharePoint group
   private async _getSpGroupMembers (spGroupId: number): Promise<object> {
-    const url = `${this.props.siteCollectionURL}/_api/web/SiteGroups/GetById(${spGroupId})/users?$select=Title,LoginName,Email,Id&$top=5000`; 
+    const url = `/_api/web/SiteGroups/GetById(${spGroupId})/users?$select=Title,LoginName,Email,Id&$top=5000`;
     const response = await this._spApiGet(url);
     // console.log("_getSpGroupMembers of ", spGroupId, response);
     return response;
@@ -375,18 +576,20 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
     if (this.allPermResponse) {hasPermissionLevel = this.allPermResponse.value.some(item=>item.PrincipalId==spGroupId);}
     // if sp group has permission level
     if (hasPermissionLevel) {
-      const url = `${this.props.siteCollectionURL}/_api/Web/RoleAssignments/GetByPrincipalId(${spGroupId})/RoleDefinitionBindings?$select=Name`;
+      const url = `/_api/Web/RoleAssignments/GetByPrincipalId(${spGroupId})/RoleDefinitionBindings?$select=Name`;
       const response = await this._spApiGet(url);
       this.spGroups[spGroupEntry]['permissionLevel'] = new Array;
       this.spGroups[spGroupEntry]['isHidden'] = false;
       response["value"].map((permLevelEntry)=>{
         this.spGroups[spGroupEntry].permissionLevel.push(permLevelEntry.Name);
       });
+
       // add flag isHidden if just permission level Limited Access
-      if ((response["value"].length==1) && (this.spGroups[spGroupEntry].permissionLevel.includes('Limited Access'))) {
+      if ((response["value"].length==1) && (this.spGroups[spGroupEntry].permissionLevel.some( permLevel => { return permLevel.includes('Limited Access'); }))) {
         this.spGroups[spGroupEntry].isHidden = true;
       }
-    }  else {
+    } 
+    else {
       // add flag isHidden if has't permissions
       this.spGroups[spGroupEntry].isHidden = true;
     }
@@ -408,13 +611,14 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
     this.spGroups[spGroupEntry]['typeShort'] = "SP";
     this.spGroups[spGroupEntry]['users'] = [];
     this.spGroups[spGroupEntry]['permissionLevel'] = [];
-    //keep displayname of default groups
+    // keep displayname of default groups
     if (!this.spGroups[spGroupEntry].displayName) {
       this.spGroups[spGroupEntry].displayName = spGroupResponse.Title;
     }
 
     // get sp group permissions
     await this._getAndBuildSpGroupPermissions(spGroupResponse.Id, spGroupEntry);
+    
     if (this.props.config.logPermCenterVars) { console.log(`${spGroupEntry} permission levels after adding new ones:`, this.spGroups[spGroupEntry]['permissionLevel']);}
 
     // get members
@@ -451,80 +655,84 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
 
   // get site admins
   private async _getAdmins (): Promise<any> { 
-    const url = `${this.props.siteCollectionURL}/_api/web/siteusers?$filter=IsSiteAdmin eq true`;
-    if (this.props.config.logPermCenterVars) { console.log("----------------_getAdmins executed");}
-    const response = await this._spApiGet(url);
-    const spGroupEntry = "spGroup1";
-    this.spGroups.spGroup1.users = [];
-    let getAdminsResponse;
-    // to display "no access": if response.value = empty: since there is always at least one site admin, we can assume that user has no permission to read admins
-    if (!response["value"][0]) {
-      getAdminsResponse = "no access";
-    } else getAdminsResponse = response["value"];
-    return await this._buildSpGroupMembers(spGroupEntry, getAdminsResponse);
+    if (this.props.config.showAdmins) {
+      const url = `/_api/web/siteusers?$filter=IsSiteAdmin%20eq%20true`;
+      if (this.props.config.logPermCenterVars) { console.log("----------------_getAdmins executed");}
+      const response = await this._spApiGet(url);
+      const spGroupEntry = "spGroup1";
+      this.spGroups.spGroup1.users = [];
+      let getAdminsResponse;
+      // to display "no access": if response.value = empty: since there is always at least one site admin, we can assume that user has no permission to read admins
+      if (!response["value"][0]) {
+        getAdminsResponse = "no access";
+      } else getAdminsResponse = response["value"];
+      return await this._buildSpGroupMembers(spGroupEntry, getAdminsResponse);
+    }
   }
 
   // get members with access given directly
   private async _getDirectAccess (): Promise<any> { 
-    const url = `${this.props.siteCollectionURL}/_api/web/RoleAssignments?$expand=Member,RoleDefinitionBindings&$filter=Member/PrincipalType ne 8`;
-    const response = await this._spApiGet(url);
+    if (this.props.config.showDirectAccess) {
+      const url = `/_api/web/RoleAssignments?$expand=Member,RoleDefinitionBindings&$filter=Member/PrincipalType%20ne%208`;
+      const response = await this._spApiGet(url);
 
-    const spGroupEntry = `spGroup${spGroupCount}`; spGroupCount += 1;
-    // write sp group properties
-    this.spGroups[spGroupEntry] = new Object;
-    this.spGroups[spGroupEntry].id = 'no sp group';
-    this.spGroups[spGroupEntry].groupName = 'Access given directly';
-    this.spGroups[spGroupEntry].displayName = 'Access given directly';
-    this.spGroups[spGroupEntry].owner = 'No owner';
-    this.spGroups[spGroupEntry].description = 'Users or groups with access given directly to the site.';
-    this.spGroups[spGroupEntry].type = "SharePoint";
-    this.spGroups[spGroupEntry].users = [];
-    this.spGroups[spGroupEntry].permissionLevel = [''];
-    this.spGroups[spGroupEntry].isHidden = false;
-    // prepare members from response
-    // filter hidden members
-    const visibleMembers = response["value"].filter(member=>{
-      // loop through permission levels of member, if it has at least one permission level with hidden=false, return true
-      let hasVisiblePermissionLevel = false;
-      member.RoleDefinitionBindings.forEach(
-        permissionLevelItem=>{
-          if (permissionLevelItem.Hidden === false) {
-            return hasVisiblePermissionLevel = true;
+      const spGroupEntry = `spGroup${spGroupCount}`; spGroupCount += 1;
+      // write sp group properties
+      this.spGroups[spGroupEntry] = new Object;
+      this.spGroups[spGroupEntry].id = 'no sp group';
+      this.spGroups[spGroupEntry].groupName = 'Access given directly';
+      this.spGroups[spGroupEntry].displayName = 'Access given directly';
+      this.spGroups[spGroupEntry].owner = 'No owner';
+      this.spGroups[spGroupEntry].description = 'Users or groups with access given directly to the site.';
+      this.spGroups[spGroupEntry].type = "SharePoint";
+      this.spGroups[spGroupEntry].users = [];
+      this.spGroups[spGroupEntry].permissionLevel = [''];
+      this.spGroups[spGroupEntry].isHidden = false;
+      // prepare members from response
+      // filter hidden members
+      const visibleMembers = response["value"].filter(member=>{
+        // loop through permission levels of member, if it has at least one permission level with hidden=false, return true
+        let hasVisiblePermissionLevel = false;
+        member.RoleDefinitionBindings.forEach(
+          permissionLevelItem=>{
+            if (permissionLevelItem.Hidden === false) {
+              return hasVisiblePermissionLevel = true;
+            }
           }
-        }
-      );
-      return hasVisiblePermissionLevel;
-    });
+        );
+        return hasVisiblePermissionLevel;
+      });
 
-    let getDirectAccessResponse;
-    // error handling: if any error, response.value = empty array, so "no users" is displayed. 
-    // in case of no access, "no access" will be displayed
-    if (errorStatusAccessDeniedArray.includes(response["status"])) {
-      getDirectAccessResponse = "no access";
-    } else {
-      // props: loginName, Id, Title, Email, permissionLevel
-      getDirectAccessResponse = visibleMembers.map(
-        memberItem=>{
-          let prettyMember = {};
-          prettyMember['LoginName'] = memberItem.Member.LoginName;
-          prettyMember['Id'] = memberItem.Member.Id;
-          prettyMember['Title'] = memberItem.Member.Title;
-          prettyMember['Email'] = memberItem.Member.Email;
-          prettyMember['permissionLevel'] = memberItem.RoleDefinitionBindings.map(permissionLevelItem=>permissionLevelItem.Name);
-          return prettyMember;
-        }
-      );
+      let getDirectAccessResponse;
+      // error handling: if any error, response.value = empty array, so "no users" is displayed. 
+      // in case of no access, "no access" will be displayed
+      if (errorStatusAccessDeniedArray.includes(response["status"])) {
+        getDirectAccessResponse = "no access";
+      } else {
+        // props: loginName, Id, Title, Email, permissionLevel
+        getDirectAccessResponse = visibleMembers.map(
+          memberItem=>{
+            let prettyMember = {};
+            prettyMember['LoginName'] = memberItem.Member.LoginName;
+            prettyMember['Id'] = memberItem.Member.Id;
+            prettyMember['Title'] = memberItem.Member.Title;
+            prettyMember['Email'] = memberItem.Member.Email;
+            prettyMember['permissionLevel'] = memberItem.RoleDefinitionBindings.map(permissionLevelItem=>permissionLevelItem.Name);
+            return prettyMember;
+          }
+        );
+      }
+      // write members
+      
+      if (this.props.config.logPermCenterVars) { console.log( `${spGroupEntry} Members response: `, getDirectAccessResponse);}
+      return await this._buildSpGroupMembers(spGroupEntry, getDirectAccessResponse);
     }
-    // write members
-    
-    if (this.props.config.logPermCenterVars) { console.log( `${spGroupEntry} Members response: `, getDirectAccessResponse);}
-    return await this._buildSpGroupMembers(spGroupEntry, getDirectAccessResponse);
   }
 
   // get all SharePoint groups
   private async _getOtherSpGroups (): Promise<any> {
 
-    const url = `${this.props.siteCollectionURL}/_api/web/sitegroups?$select=Id,Title,OwnerTitle,LoginName`;
+    const url = `/_api/web/sitegroups?$select=Id,Title,OwnerTitle,LoginName`;
     if (this.props.config.logPermCenterVars) { console.log("----------------_getOtherSpGroups executed");}
     const allSiteGroupsResponse = await this._spApiGet(url);
     
@@ -558,7 +766,7 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
     return await Promise.all(
       defaultGroupArray.map(
         async (defaultGroup) => {
-          const url = `${this.props.siteCollectionURL}/_api/web/Associated${defaultGroup}Group?$select=Id,Title,OwnerTitle`;
+          const url = `/_api/web/Associated${defaultGroup}Group?$select=Id,Title,OwnerTitle`;
           const defaultGroupResponse = await this._spApiGet(url);
           if (this.props.config.logPermCenterVars) { console.log(`default ${defaultGroup} response: `, defaultGroupResponse);}
           let groupNr: string;
@@ -579,10 +787,12 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
 
   // get all azure groups (to check if a group member is a sp domain group or an azure group, because loginName of both starts with “c:0t.c“)
   private async _getAllAzureGroups () {
-    let response = await this._graphApiGet("/groups");
+    let responseItemAmount = ""; // api default return amount is 100
+    if (this.props.config.preloadAzureGroupsAmount) {responseItemAmount = "&$top=999";}
+    let response = await this._graphApiGet("/groups" + "?$c=" + Date.now().toString() + responseItemAmount ); // "?$c=" + Date.now().toString() for IE11 because otherwise it takes the cached request);
+    
     this.setState({tenantAzureGroups: response.value});
   }
-
 
   // ---------- prettify results --------------
 
@@ -600,7 +810,8 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
             const userEntry2Item = usersArray[userEntry2Index];
 
             // if user duplicate (principalName)
-            if (this.users[userEntry1Item].principalName === this.users[userEntry2Item].principalName) {
+            if (this.users[userEntry1Item].principalName && this.users[userEntry2Item].principalName &&
+            this.users[userEntry1Item].principalName.toLowerCase() === this.users[userEntry2Item].principalName.toLowerCase()) {
               if (showLogsOfUserDouble) { console.log("duplicate user in this.users: userEntry1Item = " , userEntry1Item, ", userEntry2Item = ", userEntry2Item);}
               // put all user doubles (userEntry2Item) for actual userEntry1Item in array to handle them after second loop through this.users
               userEntryItem2Array.push(userEntry2Item);
@@ -705,7 +916,7 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
   private async _getSitePermissionLevels(): Promise<Array<string>> {
 
     //get all permission levels of site
-    const permissionLevelsResult = await this._spApiGet(`${this.props.siteCollectionURL}/_api/web/roleDefinitions`);
+    const permissionLevelsResult = await this._spApiGet(`/_api/web/roleDefinitions`);
     // put their names in  array sitePermissionLevels
     let sitePermissionLevels = permissionLevelsResult["value"].map(
       (permissionLevelObjectItem) => {
@@ -886,7 +1097,6 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
           }
           return top;
         }
-
       }
     );
     
@@ -938,18 +1148,17 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
         }
       }
     });
+
     // if there is at least one sharing group
     if (guidArray[0]) {
       // get items from sp api search
       const queryText = guidArray.join(' OR ');
-      const url = `${this.props.siteCollectionURL}/_api/search/query?querytext='${queryText}'&selectproperties='Title,Path,ListId,ParentLink'`;
+      const url = `/_api/search/query?querytext='${queryText}'&selectproperties='Title,Path,ListId,ParentLink'`;
       const getItemResponse = await this._spApiGet(url);
-
       // if some result (in case of no sharing groups for not deleted items)
       // error handling: if getItemResponse contains an error, just dispaying regular name of sharing group
       try {
         const getItemResult = getItemResponse['PrimaryQueryResult'].RelevantResults.Table.Rows;
-        
         // for each element of getItemResult extract title, path and guid
         const siteCollectionUrlLenght = this.props.siteCollectionURL.length;
         const result = await Promise.all (
@@ -958,7 +1167,7 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
             const fullPath = resultItem.Cells.filter(cell=>cell.Key==='Path')[0].Value;
             const path = fullPath.substring(siteCollectionUrlLenght+1);
             const fullGuid = resultItem.Cells.filter(cell=>cell.Key==='UniqueId')[0].Value;
-            const guid = fullGuid.substring(1,37).toUpperCase();
+            const guid = fullGuid.toUpperCase();
             const listId = resultItem.Cells.filter(cell=>cell.Key==='ListId')[0].Value;
             const parentLink = resultItem.Cells.filter(cell=>cell.Key==='ParentLink')[0].Value;
             // for each group object, if same guid, add title and path. add item to this.spGroups
@@ -995,7 +1204,7 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
                 else if (linkTypeRaw.startsWith('Flex')) {
                   linkType = `Specific people`;
                   // get permission level
-                  const requestUrl = `${this.props.siteCollectionURL}/_api/web/Lists('${listId}')/GetItemByUniqueId('${guid}')/GetSharingInformation?$Expand=permissionsInformation&$Select=links,Id`;
+                  const requestUrl = `/_api/web/Lists('${listId}')/GetItemByUniqueId('${guid}')/GetSharingInformation?$Expand=permissionsInformation&$Select=links,Id`;
                   getPermResult = await this._spApiPost(requestUrl);
                   // error handling: if error, just not displaying permission
                   // if response ok, display permission level
@@ -1040,13 +1249,14 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
   
   // get and display default Sharepoint groups and their members
     private async _firstCallBatch () {
-    await this._getAllAzureGroups();
+    if (this.props.config.importApiResponseData) {this.parseImportApiResponseData();} // first of all, get importApiResponseData, if import enabeled
+    if (this.props.config.preloadAzureGroups) {await this._getAllAzureGroups();}
     const resultDefaultGroups = await this._getDefaultSpGroups(["Owner", "Member", "Visitor"]);
     if (this.props.config.logPermCenterVars) { console.log("----------------_getDefaultSpGroups result: ", resultDefaultGroups);}
     this._removeDuplicateAzureGroups ();
     this._removeDuplicateUsers();
     this.sitePermissionLevels = await this._getSitePermissionLevels();
-    this.allPermResponse = await this._spApiGet(`${this.props.siteCollectionURL}/_api/Web/RoleAssignments`);
+    this.allPermResponse = await this._spApiGet(`/_api/Web/RoleAssignments`);
     this._prettifyUserPermissionLevels(this.sitePermissionLevels);
     return ;
   }
@@ -1078,10 +1288,10 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
   public async componentDidMount() {
 
     try {
-      await this._firstCallBatch();
-      this.setState(
+    await this._firstCallBatch();
+    this.setState(
         {spGroups: this.spGroups, users: this.users, azureGroups: this.azureGroups},
-        /* react sometimes executes setState asyncron, then it causes false display in UI, to avoid execute _secondCallBatch after state is actually set (still not shure if it works always)*/
+        /* react sometimes executes setState asyncron, then it causes false display in UI, to avoid execute _secondCallBatch after state is actually set (still not sure if it works always)*/
         async ()=>{
           // the callback after setState seems not to bubble an error, so it must be wrapped in try catch
           try {
@@ -1092,8 +1302,28 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
             if (this.props.config.throwErrors) {throw error;}
           }
           finally {
-            this.setState({spGroups: this.spGroups, users: this.users, azureGroups: this.azureGroups, azureGroupArraySorted: this.azureGroupArraySorted, isGroupsLoading: false, hiddenGroupsExist: this.hiddenGroupsExist});
+            
+            this.setState({spGroups: this.spGroups, users: this.users, azureGroups: this.azureGroups, azureGroupArraySorted: this.azureGroupArraySorted, isGroupsLoading: false, hiddenGroupsExist: this.hiddenGroupsExist, apiResponse: this.apiResponse});
             if (this.props.config.logState) {console.log(this.state);}
+
+            // for download api response in debug mode
+            if (this.props.config.exportApiResponse) {
+              this.setState({
+                downloadComponent:
+                <a
+                  style={{ display: "none" }}
+                  href={`data:text/json;charset=utf-8,${encodeURIComponent(
+                    JSON.stringify(this.state.apiResponse,undefined,2)
+                  )}`}
+                  download="apiResponse.json"
+                  ref={e=>{this.fileDownloadElement = e;}}
+                > </a>
+              },
+                ()=>{this.fileDownloadElement.click();}
+              );
+            }
+            
+
           }
         }
       );
@@ -1102,6 +1332,7 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
       if (this.props.config.logErrors) {console.log(error);}
       if (this.props.config.throwErrors) {throw error;}
     }
+
   }
 
   public componentWillMount(){
@@ -1124,6 +1355,7 @@ export default class PermissionCenter extends React.Component<IPermissionCenterP
       
       return (
         <div className={ cssStyles.permissionCenter }>
+          {this.state.downloadComponent}
           <div className={ cssStyles.container } >
             <div className={ cssStyles.row }>
               <div className={ cssStyles.column }>

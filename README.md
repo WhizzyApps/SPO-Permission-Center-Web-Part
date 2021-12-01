@@ -17,7 +17,11 @@ The web part makes it easier for site owners and site users to answer the follow
 ![SharePoint-Permission-Center-Screenshot](spc-screenshot1.png)
 
 ### Building the code
-Ensure that [Node.js](https://nodejs.org/) V10.x is installed. On Windows, run ```ship.bat```. On other systems use
+Note: **Ensure that Node.js V10.x is installed. Do not use newer versions!** Node.js V14.x and V16.x will not work. They will install a newer gulp-cli that includes a newer gulp-sass module which will throw an error.
+ - For 64bit Windows use [this Node.js installer](https://nodejs.org/download/release/v10.24.1/node-v10.24.1-x64.msi). 
+ - On other systems download from <a style="align-self: flex-start;" href="https://nodejs.org/download/release/v10.24.1/" target="_blank">Node.js V10.x </a>.
+
+To build the code on Windows, run ```ship.bat```. On other systems use
 
 ```bash
 npm install gulp-cli -g
